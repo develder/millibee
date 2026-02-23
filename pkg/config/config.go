@@ -452,13 +452,29 @@ type CronToolsConfig struct {
 type ExecConfig struct {
 	EnableDenyPatterns bool     `json:"enable_deny_patterns" env:"PICOCLAW_TOOLS_EXEC_ENABLE_DENY_PATTERNS"`
 	CustomDenyPatterns []string `json:"custom_deny_patterns" env:"PICOCLAW_TOOLS_EXEC_CUSTOM_DENY_PATTERNS"`
+	EnableAllowlist    bool     `json:"enable_allowlist"      env:"PICOCLAW_TOOLS_EXEC_ENABLE_ALLOWLIST"`
+	AllowPatterns      []string `json:"allow_patterns"        env:"PICOCLAW_TOOLS_EXEC_ALLOW_PATTERNS"`
+	MaxCommandLength   int      `json:"max_command_length"    env:"PICOCLAW_TOOLS_EXEC_MAX_COMMAND_LENGTH"`
+}
+
+type ToolPolicyConfig struct {
+	Enabled        *bool `json:"enabled,omitempty"`
+	MaxArgSize     int   `json:"max_arg_size,omitempty"     env:"MAX_ARG_SIZE"`
+	MaxCallsPerMin int   `json:"max_calls_per_min,omitempty" env:"MAX_CALLS_PER_MIN"`
+}
+
+type SecurityConfig struct {
+	DefaultMaxArgSize     int                          `json:"default_max_arg_size"      env:"PICOCLAW_TOOLS_SECURITY_DEFAULT_MAX_ARG_SIZE"`
+	DefaultMaxCallsPerMin int                          `json:"default_max_calls_per_min" env:"PICOCLAW_TOOLS_SECURITY_DEFAULT_MAX_CALLS_PER_MIN"`
+	ToolPolicies          map[string]ToolPolicyConfig   `json:"tool_policies,omitempty"`
 }
 
 type ToolsConfig struct {
-	Web    WebToolsConfig    `json:"web"`
-	Cron   CronToolsConfig   `json:"cron"`
-	Exec   ExecConfig        `json:"exec"`
-	Skills SkillsToolsConfig `json:"skills"`
+	Web      WebToolsConfig    `json:"web"`
+	Cron     CronToolsConfig   `json:"cron"`
+	Exec     ExecConfig        `json:"exec"`
+	Skills   SkillsToolsConfig `json:"skills"`
+	Security SecurityConfig    `json:"security"`
 }
 
 type SkillsToolsConfig struct {
@@ -517,7 +533,53 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, err
 	}
 
+	// Validate configuration values
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+
 	return cfg, nil
+}
+
+// Validate checks configuration values for correctness.
+func (c *Config) Validate() error {
+	// Temperature: [0.0, 2.0] if set
+	if c.Agents.Defaults.Temperature != nil {
+		t := *c.Agents.Defaults.Temperature
+		if t < 0.0 || t > 2.0 {
+			return fmt.Errorf("agents.defaults.temperature must be between 0.0 and 2.0, got %v", t)
+		}
+	}
+
+	// MaxTokens > 0
+	if c.Agents.Defaults.MaxTokens <= 0 {
+		return fmt.Errorf("agents.defaults.max_tokens must be > 0, got %d", c.Agents.Defaults.MaxTokens)
+	}
+
+	// MaxToolIterations > 0
+	if c.Agents.Defaults.MaxToolIterations <= 0 {
+		return fmt.Errorf("agents.defaults.max_tool_iterations must be > 0, got %d", c.Agents.Defaults.MaxToolIterations)
+	}
+
+	// Gateway port: 1-65535
+	if c.Gateway.Port < 1 || c.Gateway.Port > 65535 {
+		return fmt.Errorf("gateway.port must be between 1 and 65535, got %d", c.Gateway.Port)
+	}
+
+	// Security: non-negative values
+	if c.Tools.Security.DefaultMaxArgSize < 0 {
+		return fmt.Errorf("tools.security.default_max_arg_size must be >= 0, got %d", c.Tools.Security.DefaultMaxArgSize)
+	}
+	for name, policy := range c.Tools.Security.ToolPolicies {
+		if policy.MaxCallsPerMin < 0 {
+			return fmt.Errorf("tools.security.tool_policies[%s].max_calls_per_min must be >= 0, got %d", name, policy.MaxCallsPerMin)
+		}
+		if policy.MaxArgSize < 0 {
+			return fmt.Errorf("tools.security.tool_policies[%s].max_arg_size must be >= 0, got %d", name, policy.MaxArgSize)
+		}
+	}
+
+	return nil
 }
 
 func SaveConfig(path string, cfg *Config) error {

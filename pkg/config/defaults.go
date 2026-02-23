@@ -297,6 +297,16 @@ func DefaultConfig() *Config {
 			},
 			Exec: ExecConfig{
 				EnableDenyPatterns: true,
+				MaxCommandLength:   10000,
+			},
+			Security: SecurityConfig{
+				DefaultMaxArgSize: 100000,
+				ToolPolicies: map[string]ToolPolicyConfig{
+					"exec":       {MaxCallsPerMin: 30},
+					"spawn":      {MaxCallsPerMin: 5},
+					"web_fetch":  {MaxCallsPerMin: 20},
+					"web_search": {MaxCallsPerMin: 10},
+				},
 			},
 			Skills: SkillsToolsConfig{
 				Registries: SkillsRegistriesConfig{
