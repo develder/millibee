@@ -472,10 +472,39 @@ type SecurityConfig struct {
 
 type ToolsConfig struct {
 	Web      WebToolsConfig    `json:"web"`
+	Sidecars SidecarsConfig    `json:"sidecars"`
 	Cron     CronToolsConfig   `json:"cron"`
 	Exec     ExecConfig        `json:"exec"`
 	Skills   SkillsToolsConfig `json:"skills"`
 	Security SecurityConfig    `json:"security"`
+}
+
+// SidecarsConfig holds configuration for Docker sidecar service tools.
+type SidecarsConfig struct {
+	Crawl4AI     Crawl4AIConfig     `json:"crawl4ai"`
+	YTTranscript YTTranscriptConfig `json:"yt_transcript"`
+	WhisperASR   WhisperASRConfig   `json:"whisper_asr"`
+}
+
+// Crawl4AIConfig configures the deep_scrape tool backed by Crawl4AI.
+type Crawl4AIConfig struct {
+	Enabled     bool   `json:"enabled"      env:"PICOCLAW_SIDECARS_CRAWL4AI_ENABLED"`
+	BaseURL     string `json:"base_url"     env:"PICOCLAW_SIDECARS_CRAWL4AI_BASE_URL"`
+	TimeoutSecs int    `json:"timeout_secs" env:"PICOCLAW_SIDECARS_CRAWL4AI_TIMEOUT_SECS"`
+}
+
+// YTTranscriptConfig configures the youtube_transcript tool.
+type YTTranscriptConfig struct {
+	Enabled     bool   `json:"enabled"      env:"PICOCLAW_SIDECARS_YT_TRANSCRIPT_ENABLED"`
+	BaseURL     string `json:"base_url"     env:"PICOCLAW_SIDECARS_YT_TRANSCRIPT_BASE_URL"`
+	TimeoutSecs int    `json:"timeout_secs" env:"PICOCLAW_SIDECARS_YT_TRANSCRIPT_TIMEOUT_SECS"`
+}
+
+// WhisperASRConfig configures the transcribe_audio tool backed by Whisper ASR.
+type WhisperASRConfig struct {
+	Enabled     bool   `json:"enabled"      env:"PICOCLAW_SIDECARS_WHISPER_ASR_ENABLED"`
+	BaseURL     string `json:"base_url"     env:"PICOCLAW_SIDECARS_WHISPER_ASR_BASE_URL"`
+	TimeoutSecs int    `json:"timeout_secs" env:"PICOCLAW_SIDECARS_WHISPER_ASR_TIMEOUT_SECS"`
 }
 
 type SkillsToolsConfig struct {

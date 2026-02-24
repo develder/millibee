@@ -220,6 +220,23 @@
       },
       "allowed_hosts": ["crawl4ai", "yt-transcript", "whisper-asr"]
     },
+    "sidecars": {
+      "crawl4ai": {
+        "enabled": false,
+        "base_url": "http://crawl4ai:11235",
+        "timeout_secs": 120
+      },
+      "yt_transcript": {
+        "enabled": false,
+        "base_url": "http://yt-transcript:8000",
+        "timeout_secs": 30
+      },
+      "whisper_asr": {
+        "enabled": false,
+        "base_url": "http://whisper-asr:9000",
+        "timeout_secs": 300
+      }
+    },
     "cron": {
       "exec_timeout_minutes": 5
     },

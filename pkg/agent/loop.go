@@ -111,6 +111,26 @@ func registerSharedTools(
 		}
 		agent.Tools.Register(tools.NewWebFetchTool(50000, cfg.Tools.Web.AllowedHosts))
 
+		// Docker sidecar tools
+		if cfg.Tools.Sidecars.Crawl4AI.Enabled {
+			agent.Tools.Register(tools.NewDeepScrapeTool(
+				cfg.Tools.Sidecars.Crawl4AI.BaseURL,
+				cfg.Tools.Sidecars.Crawl4AI.TimeoutSecs,
+			))
+		}
+		if cfg.Tools.Sidecars.YTTranscript.Enabled {
+			agent.Tools.Register(tools.NewYouTubeTranscriptTool(
+				cfg.Tools.Sidecars.YTTranscript.BaseURL,
+				cfg.Tools.Sidecars.YTTranscript.TimeoutSecs,
+			))
+		}
+		if cfg.Tools.Sidecars.WhisperASR.Enabled {
+			agent.Tools.Register(tools.NewTranscribeAudioTool(
+				cfg.Tools.Sidecars.WhisperASR.BaseURL,
+				cfg.Tools.Sidecars.WhisperASR.TimeoutSecs,
+			))
+		}
+
 		// Hardware tools (I2C, SPI) - Linux only, returns error on other platforms
 		agent.Tools.Register(tools.NewI2CTool())
 		agent.Tools.Register(tools.NewSPITool())

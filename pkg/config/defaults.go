@@ -292,6 +292,23 @@ func DefaultConfig() *Config {
 					MaxResults: 5,
 				},
 			},
+			Sidecars: SidecarsConfig{
+				Crawl4AI: Crawl4AIConfig{
+					Enabled:     false,
+					BaseURL:     "http://crawl4ai:11235",
+					TimeoutSecs: 120,
+				},
+				YTTranscript: YTTranscriptConfig{
+					Enabled:     false,
+					BaseURL:     "http://yt-transcript:8000",
+					TimeoutSecs: 30,
+				},
+				WhisperASR: WhisperASRConfig{
+					Enabled:     false,
+					BaseURL:     "http://whisper-asr:9000",
+					TimeoutSecs: 300,
+				},
+			},
 			Cron: CronToolsConfig{
 				ExecTimeoutMinutes: 5,
 			},
@@ -302,10 +319,13 @@ func DefaultConfig() *Config {
 			Security: SecurityConfig{
 				DefaultMaxArgSize: 100000,
 				ToolPolicies: map[string]ToolPolicyConfig{
-					"exec":       {MaxCallsPerMin: 30},
-					"spawn":      {MaxCallsPerMin: 5},
-					"web_fetch":  {MaxCallsPerMin: 20},
-					"web_search": {MaxCallsPerMin: 10},
+					"exec":                {MaxCallsPerMin: 30},
+					"spawn":               {MaxCallsPerMin: 5},
+					"web_fetch":           {MaxCallsPerMin: 20},
+					"web_search":          {MaxCallsPerMin: 10},
+					"deep_scrape":         {MaxCallsPerMin: 5},
+					"youtube_transcript":  {MaxCallsPerMin: 20},
+					"transcribe_audio":    {MaxCallsPerMin: 5},
 				},
 			},
 			Skills: SkillsToolsConfig{
