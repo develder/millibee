@@ -55,6 +55,8 @@ func NewAgentInstance(
 	toolsRegistry.Register(tools.NewExecToolWithConfig(workspace, restrict, cfg))
 	toolsRegistry.Register(tools.NewEditFileTool(workspace, restrict))
 	toolsRegistry.Register(tools.NewAppendFileTool(workspace, restrict))
+	toolsRegistry.Register(tools.NewGlobTool(workspace, restrict))
+	toolsRegistry.Register(tools.NewGrepTool(workspace, restrict))
 
 	// Memory vault tools
 	memVault := memory.NewVault(filepath.Join(workspace, "memory"))

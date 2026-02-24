@@ -252,6 +252,8 @@ type fileSystem interface {
 	ReadFile(path string) ([]byte, error)
 	WriteFile(path string, data []byte) error
 	ReadDir(path string) ([]os.DirEntry, error)
+	Walk(root string, fn fs.WalkDirFunc) error
+	Open(path string) (fs.File, error)
 }
 
 // hostFs is an unrestricted fileReadWriter that operates directly on the host filesystem.
@@ -273,6 +275,14 @@ func (h *hostFs) ReadFile(path string) ([]byte, error) {
 
 func (h *hostFs) ReadDir(path string) ([]os.DirEntry, error) {
 	return os.ReadDir(path)
+}
+
+func (h *hostFs) Walk(root string, fn fs.WalkDirFunc) error {
+	return filepath.WalkDir(root, fn)
+}
+
+func (h *hostFs) Open(path string) (fs.File, error) {
+	return os.Open(path)
 }
 
 func (h *hostFs) WriteFile(path string, data []byte) error {
@@ -380,6 +390,25 @@ func (r *sandboxFs) ReadDir(path string) ([]os.DirEntry, error) {
 		return nil
 	})
 	return entries, err
+}
+
+func (r *sandboxFs) Walk(walkRoot string, fn fs.WalkDirFunc) error {
+	return r.execute(walkRoot, func(root *os.Root, relPath string) error {
+		return fs.WalkDir(root.FS(), relPath, fn)
+	})
+}
+
+func (r *sandboxFs) Open(path string) (fs.File, error) {
+	var file fs.File
+	err := r.execute(path, func(root *os.Root, relPath string) error {
+		f, err := root.FS().Open(relPath)
+		if err != nil {
+			return err
+		}
+		file = f
+		return nil
+	})
+	return file, err
 }
 
 // Helper to get a safe relative path for os.Root usage
