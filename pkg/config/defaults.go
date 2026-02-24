@@ -24,6 +24,9 @@ func DefaultConfig() *Config {
 			DMScope: "main",
 		},
 		Channels: ChannelsConfig{
+			Console: ConsoleConfig{
+				Enabled: false,
+			},
 			WhatsApp: WhatsAppConfig{
 				Enabled:   false,
 				BridgeURL: "ws://localhost:3001",

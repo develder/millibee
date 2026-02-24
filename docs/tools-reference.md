@@ -140,3 +140,51 @@ Available on Linux for IoT/embedded use cases. Return errors on other platforms.
 | Skills (`find_skills`, `install_skill`) | Shared (`loop.go`) | Registry config |
 | Communication (`message`) | Shared (`loop.go`) | No |
 | Hardware (`i2c`, `spi`) | Shared (`loop.go`) | Linux only |
+
+## CLI Modes
+
+PicoClaw provides three ways to interact with the agent:
+
+### Agent Mode (basic)
+
+```bash
+picoclaw agent -m "Hello"          # One-shot query
+picoclaw agent                      # Interactive REPL (readline)
+picoclaw agent -s my-session        # Custom session
+picoclaw agent --model claude-sonnet-4.6  # Override model
+```
+
+### TUI Mode (rich terminal UI)
+
+```bash
+picoclaw tui                        # Full-screen Bubble Tea UI
+picoclaw chat                       # Alias for tui
+picoclaw tui -s my-session          # Custom session
+picoclaw tui --model claude-sonnet-4.6    # Override model
+```
+
+Features: markdown rendering (Glamour), scrollable chat history, multi-line input, thinking spinner. Uses the same `AgentLoop.ProcessDirect()` as agent mode.
+
+### Gateway Mode (long-running bot)
+
+```bash
+picoclaw gateway                    # Start with all enabled channels
+```
+
+Connects to external platforms (Telegram, Discord, Slack, etc.) via the channel system. See `config.json` for channel configuration.
+
+## Console Channel
+
+The console channel makes the gateway interactive from the terminal. When enabled, the gateway reads stdin and writes responses to stdout — like agent mode, but integrated into the full gateway with all services (cron, heartbeat, channels).
+
+```json
+{
+  "channels": {
+    "console": {
+      "enabled": true
+    }
+  }
+}
+```
+
+Unlike the internal `cli` channel used by agent mode, `console` is a real external channel that participates in outbound message dispatch.

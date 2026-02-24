@@ -202,6 +202,19 @@ func (m *Manager) initChannels() error {
 		}
 	}
 
+	if m.config.Channels.Console.Enabled {
+		logger.DebugC("channels", "Attempting to initialize Console channel")
+		console, err := NewConsoleChannel(m.config.Channels.Console, m.bus)
+		if err != nil {
+			logger.ErrorCF("channels", "Failed to initialize Console channel", map[string]any{
+				"error": err.Error(),
+			})
+		} else {
+			m.channels["console"] = console
+			logger.InfoC("channels", "Console channel enabled successfully")
+		}
+	}
+
 	logger.InfoCF("channels", "Channel initialization completed", map[string]any{
 		"enabled_channels": len(m.channels),
 	})

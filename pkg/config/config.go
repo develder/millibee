@@ -180,6 +180,7 @@ type AgentDefaults struct {
 }
 
 type ChannelsConfig struct {
+	Console  ConsoleConfig  `json:"console"`
 	WhatsApp WhatsAppConfig `json:"whatsapp"`
 	Telegram TelegramConfig `json:"telegram"`
 	Feishu   FeishuConfig   `json:"feishu"`
@@ -192,6 +193,13 @@ type ChannelsConfig struct {
 	OneBot   OneBotConfig   `json:"onebot"`
 	WeCom    WeComConfig    `json:"wecom"`
 	WeComApp WeComAppConfig `json:"wecom_app"`
+}
+
+// ConsoleConfig holds configuration for the interactive console channel.
+// When enabled in gateway mode, stdin is read for user input and responses
+// are printed to stdout.
+type ConsoleConfig struct {
+	Enabled bool `json:"enabled" env:"PICOCLAW_CHANNELS_CONSOLE_ENABLED"`
 }
 
 type WhatsAppConfig struct {

@@ -46,6 +46,9 @@
     }
   ],
   "channels": {
+    "console": {
+      "enabled": false
+    },
     "telegram": {
       "enabled": false,
       "token": "YOUR_TELEGRAM_BOT_TOKEN",
