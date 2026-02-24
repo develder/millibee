@@ -8,6 +8,7 @@ PicoClaw's tools configuration is located in the `tools` field of `config.json`.
 {
   "tools": {
     "web": { ... },
+    "sidecars": { ... },
     "exec": { ... },
     "cron": { ... },
     "skills": { ... }
@@ -63,6 +64,72 @@ Metadata endpoints (`metadata.google.internal`) are **always** blocked, even if 
 ```
 
 Environment variable: `PICOCLAW_TOOLS_WEB_ALLOWED_HOSTS=crawl4ai,ollama`
+
+## Sidecar Tools
+
+Sidecar tools are native Go tools that communicate with Docker companion services over HTTP. They are only registered in the agent's toolset when `enabled: true`.
+
+### Crawl4AI (`deep_scrape` tool)
+
+Scrapes web pages using a headless browser. Returns LLM-ready markdown.
+
+| Config | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | bool | false | Enable the deep_scrape tool |
+| `base_url` | string | `http://crawl4ai:11235` | Crawl4AI service URL |
+| `timeout_secs` | int | 120 | Request timeout in seconds |
+
+### YouTube Transcript (`youtube_transcript` tool)
+
+Extracts captions/subtitles from YouTube videos.
+
+| Config | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | bool | false | Enable the youtube_transcript tool |
+| `base_url` | string | `http://yt-transcript:8000` | YouTube Transcript API URL |
+| `timeout_secs` | int | 30 | Request timeout in seconds |
+
+### Whisper ASR (`transcribe_audio` tool)
+
+Transcribes audio files to text using speech-to-text.
+
+| Config | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | bool | false | Enable the transcribe_audio tool |
+| `base_url` | string | `http://whisper-asr:9000` | Whisper ASR service URL |
+| `timeout_secs` | int | 300 | Request timeout in seconds |
+
+### Configuration Example
+
+```json
+{
+  "tools": {
+    "sidecars": {
+      "crawl4ai": {
+        "enabled": true,
+        "base_url": "http://crawl4ai:11235",
+        "timeout_secs": 120
+      },
+      "yt_transcript": {
+        "enabled": true,
+        "base_url": "http://yt-transcript:8000",
+        "timeout_secs": 30
+      },
+      "whisper_asr": {
+        "enabled": true,
+        "base_url": "http://whisper-asr:9000",
+        "timeout_secs": 300
+      }
+    }
+  }
+}
+```
+
+Environment variables:
+- `PICOCLAW_SIDECARS_CRAWL4AI_ENABLED=true`
+- `PICOCLAW_SIDECARS_CRAWL4AI_BASE_URL=http://crawl4ai:11235`
+- `PICOCLAW_SIDECARS_YT_TRANSCRIPT_ENABLED=true`
+- `PICOCLAW_SIDECARS_WHISPER_ASR_ENABLED=true`
 
 ## Exec Tool
 

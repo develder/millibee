@@ -54,17 +54,21 @@ cd picoclaw
 cp config/config.example.json config/config.json
 ```
 
-Edit `config/config.json` and set your API keys. Make sure `allowed_hosts` includes the companion services:
+Edit `config/config.json` and set your API keys. Enable the sidecar tools you want to use:
 
 ```json
 {
   "tools": {
-    "web": {
-      "allowed_hosts": ["crawl4ai", "yt-transcript", "whisper-asr"]
+    "sidecars": {
+      "crawl4ai":      { "enabled": true },
+      "yt_transcript": { "enabled": true },
+      "whisper_asr":   { "enabled": true }
     }
   }
 }
 ```
+
+This registers the `deep_scrape`, `youtube_transcript`, and `transcribe_audio` native tools in the agent's toolset.
 
 ### 3. (Optional) Customize environment variables
 
@@ -201,7 +205,9 @@ The memory vault is bind-mounted so its contents are directly accessible from th
 
 ## Networking
 
-All services communicate over the `picoclaw-net` bridge network using container names as hostnames. The SSRF allowlist in `config.json` must include these hostnames so PicoClaw can reach them via `web_fetch`:
+All services communicate over the `picoclaw-net` bridge network using container names as hostnames. The native sidecar tools (`deep_scrape`, `youtube_transcript`, `transcribe_audio`) call these services directly using the configured `base_url` — no SSRF allowlist needed for them.
+
+If you also want to reach the sidecar services via `web_fetch` (e.g., from a skill), add them to the allowlist:
 
 ```json
 "allowed_hosts": ["crawl4ai", "yt-transcript", "whisper-asr"]
