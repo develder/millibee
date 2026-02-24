@@ -218,7 +218,7 @@
         "api_key": "pplx-xxx",
         "max_results": 5
       },
-      "allowed_hosts": ["clawd-crawlee"]
+      "allowed_hosts": ["crawl4ai"]
     },
     "cron": {
       "exec_timeout_minutes": 5

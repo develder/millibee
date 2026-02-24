@@ -56,13 +56,13 @@ Metadata endpoints (`metadata.google.internal`) are **always** blocked, even if 
 {
   "tools": {
     "web": {
-      "allowed_hosts": ["clawd-crawlee", "ollama"]
+      "allowed_hosts": ["crawl4ai", "ollama"]
     }
   }
 }
 ```
 
-Environment variable: `PICOCLAW_TOOLS_WEB_ALLOWED_HOSTS=clawd-crawlee,ollama`
+Environment variable: `PICOCLAW_TOOLS_WEB_ALLOWED_HOSTS=crawl4ai,ollama`
 
 ## Exec Tool
 

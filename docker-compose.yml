@@ -18,7 +18,7 @@ services:
       # Memory vault: bind mount zodat het buiten de container beschikbaar is
       - ${MEMORY_VAULT_PATH:-./data/memory}:/home/picoclaw/.picoclaw/workspace/memory
     environment:
-      - CRAWLEE_BASE_URL=http://clawd-crawlee:3000
+      - CRAWL4AI_BASE_URL=http://crawl4ai:11235
     command: ["agent"]
     stdin_open: true
     tty: true
@@ -43,33 +43,29 @@ services:
       # Memory vault: bind mount zodat het buiten de container beschikbaar is
       - ${MEMORY_VAULT_PATH:-./data/memory}:/home/picoclaw/.picoclaw/workspace/memory
     environment:
-      - CRAWLEE_BASE_URL=http://clawd-crawlee:3000
+      - CRAWL4AI_BASE_URL=http://crawl4ai:11235
     command: ["gateway"]
 
   # ─────────────────────────────────────────────
-  # Clawd-Crawlee (Deep Scraper)
-  #   Headless browser scraping service
-  #   API: http://clawd-crawlee:3000
+  # Crawl4AI (Deep Scraper)
+  #   LLM-ready web scraping service
+  #   API: http://crawl4ai:11235
+  #   Playground: http://localhost:11235/playground
   # ─────────────────────────────────────────────
-  clawd-crawlee:
-    build:
-      context: ./docker/clawd-crawlee
-      dockerfile: Dockerfile
-    container_name: clawd-crawlee
+  crawl4ai:
+    image: unclecode/crawl4ai:latest
+    container_name: crawl4ai
     restart: unless-stopped
     networks:
       - picoclaw-net
     ports:
-      # Optioneel: expose op host voor debugging
-      - "${CRAWLEE_HOST_PORT:-3000}:3000"
+      # Optioneel: expose op host voor debugging / playground
+      - "${CRAWL4AI_HOST_PORT:-11235}:11235"
     environment:
-      - NODE_ENV=production
-      - MAX_CONCURRENCY=${CRAWLEE_MAX_CONCURRENCY:-5}
-      - REQUEST_TIMEOUT_MS=${CRAWLEE_REQUEST_TIMEOUT_MS:-60000}
-      - LOG_LEVEL=${CRAWLEE_LOG_LEVEL:-info}
+      - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:-}
+      - MAX_CONCURRENT_TASKS=${CRAWL4AI_MAX_CONCURRENT:-5}
     volumes:
-      # Persistent storage voor crawl resultaten/cache
-      - crawlee-storage:/app/storage
+      - crawl4ai-data:/root/.crawl4ai
     # Chromium heeft shared memory nodig
     shm_size: '1gb'
 
@@ -79,4 +75,4 @@ networks:
 
 volumes:
   picoclaw-workspace:
-  crawlee-storage:
+  crawl4ai-data:
