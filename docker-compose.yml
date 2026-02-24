@@ -19,6 +19,8 @@ services:
       - ${MEMORY_VAULT_PATH:-./data/memory}:/home/picoclaw/.picoclaw/workspace/memory
     environment:
       - CRAWL4AI_BASE_URL=http://crawl4ai:11235
+      - YT_TRANSCRIPT_URL=http://yt-transcript:8000
+      - WHISPER_ASR_URL=http://whisper-asr:9000
     command: ["agent"]
     stdin_open: true
     tty: true
@@ -44,6 +46,8 @@ services:
       - ${MEMORY_VAULT_PATH:-./data/memory}:/home/picoclaw/.picoclaw/workspace/memory
     environment:
       - CRAWL4AI_BASE_URL=http://crawl4ai:11235
+      - YT_TRANSCRIPT_URL=http://yt-transcript:8000
+      - WHISPER_ASR_URL=http://whisper-asr:9000
     command: ["gateway"]
 
   # ─────────────────────────────────────────────
@@ -69,6 +73,40 @@ services:
     # Chromium heeft shared memory nodig
     shm_size: '1gb'
 
+  # ─────────────────────────────────────────────
+  # YouTube Transcript API
+  #   Extracts existing captions/subtitles from YouTube videos
+  #   API: http://yt-transcript:8000
+  # ─────────────────────────────────────────────
+  yt-transcript:
+    image: yoanbernabeu/youtubetranscriptapi:latest
+    container_name: yt-transcript
+    restart: unless-stopped
+    networks:
+      - picoclaw-net
+    ports:
+      - "${YT_TRANSCRIPT_HOST_PORT:-8200}:8000"
+
+  # ─────────────────────────────────────────────
+  # Whisper ASR (Speech-to-Text)
+  #   Transcribes audio files using Faster Whisper
+  #   API: http://whisper-asr:9000
+  #   Docs: http://localhost:9000/docs
+  # ─────────────────────────────────────────────
+  whisper-asr:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    container_name: whisper-asr
+    restart: unless-stopped
+    networks:
+      - picoclaw-net
+    ports:
+      - "${WHISPER_HOST_PORT:-9000}:9000"
+    environment:
+      - ASR_MODEL=${WHISPER_MODEL:-base}
+      - ASR_ENGINE=faster_whisper
+    volumes:
+      - whisper-cache:/root/.cache
+
 networks:
   picoclaw-net:
     driver: bridge
@@ -76,3 +114,4 @@ networks:
 volumes:
   picoclaw-workspace:
   crawl4ai-data:
+  whisper-cache:
