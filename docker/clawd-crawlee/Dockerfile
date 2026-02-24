@@ -12,6 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+# Skip browser download — browsers are pre-installed in base image
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
 # Dependencies installeren en cache opruimen in één layer
 COPY package.json ./
 RUN npm install --omit=dev && npm cache clean --force
