@@ -92,29 +92,21 @@ func (t *DeepScrapeTool) Execute(ctx context.Context, args map[string]any) *Tool
 	return t.deepCrawl(ctx, urlStr, maxDepth, maxPages)
 }
 
-// singlePageCrawl performs a synchronous single-page scrape via POST /crawl.
+// singlePageCrawl performs a synchronous single-page scrape via POST /md.
+// Uses the /md endpoint which returns markdown directly, avoiding response
+// format differences across Crawl4AI versions.
 func (t *DeepScrapeTool) singlePageCrawl(ctx context.Context, urlStr string) *ToolResult {
 	payload := map[string]any{
-		"urls": []string{urlStr},
-		"crawler_config": map[string]any{
-			"type": "CrawlerRunConfig",
-			"params": map[string]any{
-				"cache_mode": "bypass",
-			},
-		},
+		"url": urlStr,
 	}
 
-	body, err := t.postJSON(ctx, t.baseURL+"/crawl", payload)
+	body, err := t.postJSON(ctx, t.baseURL+"/md", payload)
 	if err != nil {
 		return ErrorResult(fmt.Sprintf("crawl request failed: %v", err))
 	}
 
-	var resp map[string]any
-	if err := json.Unmarshal(body, &resp); err != nil {
-		return ErrorResult(fmt.Sprintf("failed to parse crawl response: %v", err))
-	}
-
-	markdown := extractMarkdownFromResults(resp)
+	// /md returns markdown directly as the response body
+	markdown := strings.TrimSpace(string(body))
 	if markdown == "" {
 		return ErrorResult("no content returned from crawl")
 	}
