@@ -38,7 +38,7 @@ func NewProvider(token string) *Provider {
 func NewProviderWithBaseURL(token, apiBase string) *Provider {
 	baseURL := normalizeBaseURL(apiBase)
 	client := anthropic.NewClient(
-		option.WithAuthToken(token),
+		option.WithAPIKey(token),
 		option.WithBaseURL(baseURL),
 	)
 	return &Provider{
