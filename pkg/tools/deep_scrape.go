@@ -287,13 +287,21 @@ func extractMarkdownFromResult(result map[string]any) string {
 //   - "result": {...}   (single result object)
 //   - top-level markdown fields (flat response)
 func extractMarkdownFromResults(resp map[string]any) string {
-	// Format 1: "results" array (Crawl4AI <= 0.7.x)
+	// Format 1: "results" array
 	if results, ok := resp["results"].([]any); ok {
 		var parts []string
-		for _, r := range results {
+		for i, r := range results {
 			if result, ok := r.(map[string]any); ok {
 				if md := extractMarkdownFromResult(result); md != "" {
 					parts = append(parts, md)
+				} else {
+					// Log result keys for debugging
+					rkeys := make([]string, 0, len(result))
+					for k := range result {
+						rkeys = append(rkeys, k)
+					}
+					logger.WarnCF("deep_scrape", "Result has no markdown",
+						map[string]any{"index": i, "result_keys": rkeys})
 				}
 			}
 		}
