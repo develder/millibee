@@ -38,7 +38,7 @@ builds:
 
 dockers_v2:
   - id: picoclaw
-    dockerfile: Dockerfile.goreleaser
+    dockerfile: docker/Dockerfile.goreleaser
     ids:
       - picoclaw
     images:

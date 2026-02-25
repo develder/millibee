@@ -73,7 +73,7 @@ This registers the `deep_scrape`, `youtube_transcript`, and `transcribe_audio` n
 ### 3. (Optional) Customize environment variables
 
 ```bash
-cp docker/.env.example .env
+cp docker/.env.example docker/.env
 ```
 
 Only needed if you want to change default ports, Whisper model size, or memory vault path. See [Environment Variables](#environment-variables) below.
@@ -82,10 +82,10 @@ Only needed if you want to change default ports, Whisper model size, or memory v
 
 ```bash
 # Start companion services (scraper, transcription)
-docker compose up -d crawl4ai yt-transcript whisper-asr
+docker compose -f docker/docker-compose.yml up -d crawl4ai yt-transcript whisper-asr
 
 # Wait for services to be healthy
-docker compose logs -f crawl4ai yt-transcript whisper-asr
+docker compose -f docker/docker-compose.yml logs -f crawl4ai yt-transcript whisper-asr
 ```
 
 ### 5. Start PicoClaw
@@ -93,20 +93,20 @@ docker compose logs -f crawl4ai yt-transcript whisper-asr
 **Gateway mode** (long-running bot, connects to Telegram/Discord/etc.):
 
 ```bash
-docker compose --profile gateway up -d picoclaw-gateway
+docker compose -f docker/docker-compose.yml --profile gateway up -d picoclaw-gateway
 ```
 
 **Agent mode** (one-shot query):
 
 ```bash
-docker compose --profile agent run --rm picoclaw-agent -m "Hello, what can you do?"
+docker compose -f docker/docker-compose.yml --profile agent run --rm picoclaw-agent -m "Hello, what can you do?"
 ```
 
 ### 6. Verify everything is running
 
 ```bash
 # Check all containers
-docker compose ps
+docker compose -f docker/docker-compose.yml ps
 
 # Crawl4AI health check
 curl http://localhost:11235/monitor/health
@@ -126,8 +126,8 @@ The main AI agent. Runs in two modes:
 
 | Mode | Profile | Command | Description |
 |------|---------|---------|-------------|
-| Gateway | `gateway` | `docker compose --profile gateway up -d` | Long-running bot with channel integrations |
-| Agent | `agent` | `docker compose --profile agent run --rm picoclaw-agent -m "..."` | One-shot query, exits when done |
+| Gateway | `gateway` | `docker compose -f docker/docker-compose.yml --profile gateway up -d` | Long-running bot with channel integrations |
+| Agent | `agent` | `docker compose -f docker/docker-compose.yml --profile agent run --rm picoclaw-agent -m "..."` | One-shot query, exits when done |
 
 **Exposed port:** 18790 (gateway health check)
 
@@ -219,29 +219,29 @@ If you also want to reach the sidecar services via `web_fetch` (e.g., from a ski
 
 ```bash
 # All services
-docker compose logs -f
+docker compose -f docker/docker-compose.yml logs -f
 
 # Specific service
-docker compose logs -f picoclaw-gateway
+docker compose -f docker/docker-compose.yml logs -f picoclaw-gateway
 ```
 
 ### Rebuild after code changes
 
 ```bash
-docker compose build picoclaw-gateway picoclaw-agent
-docker compose --profile gateway up -d picoclaw-gateway
+docker compose -f docker/docker-compose.yml build picoclaw-gateway picoclaw-agent
+docker compose -f docker/docker-compose.yml --profile gateway up -d picoclaw-gateway
 ```
 
 ### Stop everything
 
 ```bash
-docker compose --profile gateway down
+docker compose -f docker/docker-compose.yml --profile gateway down
 ```
 
 ### Reset all data
 
 ```bash
-docker compose --profile gateway down -v
+docker compose -f docker/docker-compose.yml --profile gateway down -v
 ```
 
 > **Warning:** This deletes all named volumes including the workspace, Whisper model cache, and Crawl4AI data. The memory vault (bind mount) is not affected.
@@ -249,8 +249,8 @@ docker compose --profile gateway down -v
 ### Update companion service images
 
 ```bash
-docker compose pull crawl4ai yt-transcript whisper-asr
-docker compose up -d crawl4ai yt-transcript whisper-asr
+docker compose -f docker/docker-compose.yml pull crawl4ai yt-transcript whisper-asr
+docker compose -f docker/docker-compose.yml up -d crawl4ai yt-transcript whisper-asr
 ```
 
 ## Skills
@@ -290,13 +290,13 @@ Check that `allowed_hosts` in `config/config.json` includes the service hostname
 The entrypoint script syncs skills on startup. Check the logs:
 
 ```bash
-docker compose logs picoclaw-gateway | grep "Installed built-in skill"
+docker compose -f docker/docker-compose.yml logs picoclaw-gateway | grep "Installed built-in skill"
 ```
 
 If skills are still missing, remove the workspace volume and restart:
 
 ```bash
-docker compose --profile gateway down
+docker compose -f docker/docker-compose.yml --profile gateway down
 docker volume rm picoclaw_picoclaw-workspace
-docker compose --profile gateway up -d
+docker compose -f docker/docker-compose.yml --profile gateway up -d
 ```

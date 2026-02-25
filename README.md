@@ -43,13 +43,13 @@ cd milliclaw
 cp config/config.example.json config/config.json
 # Edit config.json — set your API key
 
-docker compose --profile gateway up -d
+docker compose -f docker/docker-compose.yml --profile gateway up -d
 ```
 
 One-shot mode:
 
 ```bash
-docker compose run --rm picoclaw-agent -m "Explain this repo's architecture"
+docker compose -f docker/docker-compose.yml run --rm picoclaw-agent -m "Explain this repo's architecture"
 ```
 
 ### From Source
