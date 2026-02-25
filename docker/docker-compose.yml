@@ -48,6 +48,8 @@ services:
       - picoclaw-workspace:/home/picoclaw/.picoclaw/workspace
       # Memory vault: bind mount zodat het buiten de container beschikbaar is
       - ${MEMORY_VAULT_PATH:-../data/memory}:/home/picoclaw/.picoclaw/workspace/memory
+    ports:
+      - "${SSH_HOST_PORT:-2222}:2222"
     environment:
       - CRAWL4AI_BASE_URL=http://crawl4ai:11235
       - YT_TRANSCRIPT_URL=http://yt-transcript:8000

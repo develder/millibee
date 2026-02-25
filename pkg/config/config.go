@@ -193,6 +193,18 @@ type ChannelsConfig struct {
 	OneBot   OneBotConfig   `json:"onebot"`
 	WeCom    WeComConfig    `json:"wecom"`
 	WeComApp WeComAppConfig `json:"wecom_app"`
+	SSH      SSHConfig      `json:"ssh"`
+}
+
+// SSHConfig holds configuration for the SSH terminal channel.
+// When enabled, the gateway starts a Wish SSH server that serves
+// a Bubble Tea TUI to connecting clients.
+type SSHConfig struct {
+	Enabled     bool                `json:"enabled"       env:"PICOCLAW_CHANNELS_SSH_ENABLED"`
+	Address     string              `json:"address"       env:"PICOCLAW_CHANNELS_SSH_ADDRESS"`
+	Password    string              `json:"password"      env:"PICOCLAW_CHANNELS_SSH_PASSWORD"`
+	HostKeyPath string              `json:"host_key_path" env:"PICOCLAW_CHANNELS_SSH_HOST_KEY_PATH"`
+	AllowFrom   FlexibleStringSlice `json:"allow_from"    env:"PICOCLAW_CHANNELS_SSH_ALLOW_FROM"`
 }
 
 // ConsoleConfig holds configuration for the interactive console channel.

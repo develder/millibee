@@ -202,6 +202,19 @@ func (m *Manager) initChannels() error {
 		}
 	}
 
+	if m.config.Channels.SSH.Enabled {
+		logger.DebugC("channels", "Attempting to initialize SSH channel")
+		sshCh, err := NewSSHChannel(m.config.Channels.SSH, m.bus)
+		if err != nil {
+			logger.ErrorCF("channels", "Failed to initialize SSH channel", map[string]any{
+				"error": err.Error(),
+			})
+		} else {
+			m.channels["ssh"] = sshCh
+			logger.InfoC("channels", "SSH channel enabled successfully")
+		}
+	}
+
 	if m.config.Channels.Console.Enabled {
 		logger.DebugC("channels", "Attempting to initialize Console channel")
 		console, err := NewConsoleChannel(m.config.Channels.Console, m.bus)

@@ -283,6 +283,63 @@ func TestDefaultConfig_Channels(t *testing.T) {
 	if cfg.Channels.Slack.Enabled {
 		t.Error("Slack should be disabled by default")
 	}
+	if cfg.Channels.SSH.Enabled {
+		t.Error("SSH should be disabled by default")
+	}
+}
+
+func TestSSHConfig_ParseJSON(t *testing.T) {
+	jsonData := `{
+		"channels": {
+			"ssh": {
+				"enabled": true,
+				"address": "0.0.0.0:2222",
+				"password": "secret",
+				"host_key_path": "/tmp/hostkey",
+				"allow_from": ["user1", "user2"]
+			}
+		}
+	}`
+
+	cfg := DefaultConfig()
+	if err := json.Unmarshal([]byte(jsonData), cfg); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	ssh := cfg.Channels.SSH
+	if !ssh.Enabled {
+		t.Error("SSH should be enabled")
+	}
+	if ssh.Address != "0.0.0.0:2222" {
+		t.Errorf("Address = %q, want '0.0.0.0:2222'", ssh.Address)
+	}
+	if ssh.Password != "secret" {
+		t.Errorf("Password = %q, want 'secret'", ssh.Password)
+	}
+	if ssh.HostKeyPath != "/tmp/hostkey" {
+		t.Errorf("HostKeyPath = %q, want '/tmp/hostkey'", ssh.HostKeyPath)
+	}
+	if len(ssh.AllowFrom) != 2 {
+		t.Fatalf("AllowFrom len = %d, want 2", len(ssh.AllowFrom))
+	}
+	if ssh.AllowFrom[0] != "user1" || ssh.AllowFrom[1] != "user2" {
+		t.Errorf("AllowFrom = %v", ssh.AllowFrom)
+	}
+}
+
+func TestSSHConfig_DefaultsWhenAbsent(t *testing.T) {
+	jsonData := `{}`
+	cfg := DefaultConfig()
+	if err := json.Unmarshal([]byte(jsonData), cfg); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	if cfg.Channels.SSH.Enabled {
+		t.Error("SSH should be disabled when absent from config")
+	}
+	if cfg.Channels.SSH.Address != "" {
+		t.Errorf("SSH Address should be empty when absent, got %q", cfg.Channels.SSH.Address)
+	}
 }
 
 // TestDefaultConfig_WebTools verifies web tools config

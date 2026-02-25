@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="assets/millibee-logo.png" alt="MilliBee" width="200">
+  <img src="assets/millibee-logo.png" alt="MilliBee" width="400">
 
   <h1>MilliBee</h1>
   <p><i>She ships.</i></p>
