@@ -527,6 +527,30 @@ func (al *AgentLoop) runLLMIteration(
 				"max":       agent.MaxIterations,
 			})
 
+		// Inject iteration budget hint when 75% of iterations are used
+		budgetThreshold := (agent.MaxIterations * 3) / 4
+		if budgetThreshold < 2 {
+			budgetThreshold = 2
+		}
+		if iteration == budgetThreshold {
+			budgetHint := fmt.Sprintf(
+				"[SYSTEM] You have used %d of %d tool iterations. You are running low. "+
+					"If your current approach is not working, stop calling tools and give the user "+
+					"a helpful summary of what you tried and why it didn't work.",
+				iteration-1, agent.MaxIterations,
+			)
+			messages = append(messages, providers.Message{
+				Role:    "user",
+				Content: budgetHint,
+			})
+			logger.InfoCF("agent", "Injected iteration budget hint",
+				map[string]any{
+					"agent_id":  agent.ID,
+					"iteration": iteration,
+					"max":       agent.MaxIterations,
+				})
+		}
+
 		// Build tool definitions
 		providerToolDefs := agent.Tools.ToProviderDefs()
 
@@ -763,6 +787,40 @@ func (al *AgentLoop) runLLMIteration(
 
 			// Save tool result message to session
 			agent.Sessions.AddFullMessage(opts.SessionKey, toolResultMsg)
+		}
+	}
+
+	// If iterations exhausted without a final text response, make one last
+	// LLM call WITHOUT tools to force a helpful summary for the user.
+	if finalContent == "" && iteration >= agent.MaxIterations {
+		logger.InfoCF("agent", "Iterations exhausted, making wrap-up call without tools",
+			map[string]any{
+				"agent_id":   agent.ID,
+				"iterations": iteration,
+			})
+
+		messages = append(messages, providers.Message{
+			Role: "user",
+			Content: "[SYSTEM] You have exhausted all tool iterations. " +
+				"Provide a concise, helpful response to the user summarizing what you tried, " +
+				"what you found, and why you could not fully complete the request. " +
+				"Do NOT request any tool calls.",
+		})
+
+		llmOpts := map[string]any{
+			"max_tokens":  agent.MaxTokens,
+			"temperature": agent.Temperature,
+		}
+
+		wrapUpResponse, err := agent.Provider.Chat(ctx, messages, nil, agent.Model, llmOpts)
+		if err != nil {
+			logger.WarnCF("agent", "Wrap-up LLM call failed",
+				map[string]any{
+					"agent_id": agent.ID,
+					"error":    err.Error(),
+				})
+		} else if wrapUpResponse != nil && wrapUpResponse.Content != "" {
+			finalContent = wrapUpResponse.Content
 		}
 	}
 
