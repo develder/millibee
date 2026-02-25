@@ -1,50 +1,50 @@
-# 企业微信自建应用 (WeCom App) 配置指南
+# WeCom App Configuration Guide
 
-本文档介绍如何在 MilliBee 中配置企业微信自建应用 (wecom-app) 通道。
+This document describes how to configure the WeCom App (WeChat Work custom application) channel in MilliBee.
 
-## 功能特性
+## Features
 
-| 功能 | 支持状态 |
-|------|---------|
-| 被动接收消息 | ✅ |
-| 主动发送消息 | ✅ |
-| 私聊 | ✅ |
-| 群聊 | ❌ |
+| Feature | Status |
+|---------|--------|
+| Receive messages (passive) | ✅ |
+| Send messages (proactive) | ✅ |
+| Direct messages | ✅ |
+| Group chat | ❌ |
 
-## 配置步骤
+## Setup
 
-### 1. 企业微信后台配置
+### 1. WeCom Admin Console
 
-1. 登录 [企业微信管理后台](https://work.weixin.qq.com/wework_admin)
-2. 进入"应用管理" → 选择自建应用
-3. 记录以下信息：
-   - **AgentId**: 应用详情页显示
-   - **Secret**: 点击"查看"获取
-4. 进入"我的企业"页面，记录 **企业ID** (CorpID)
+1. Log in to the [WeCom Admin Console](https://work.weixin.qq.com/wework_admin)
+2. Go to "App Management" and select your custom app
+3. Note the following:
+   - **AgentId**: shown on the app details page
+   - **Secret**: click "View" to retrieve
+4. Go to "My Enterprise" page and note the **CorpID**
 
-### 2. 接收消息配置
+### 2. Message Receiving Configuration
 
-1. 在应用详情页，点击"接收消息"的"设置API接收"
-2. 填写以下信息：
+1. On the app details page, click "Set API Receiving" under "Receive Messages"
+2. Fill in:
    - **URL**: `http://your-server:18792/webhook/wecom-app`
-   - **Token**: 随机生成或自定义（用于签名验证）
-   - **EncodingAESKey**: 点击"随机生成"生成43字符的密钥
-3. 点击"保存"时，企业微信会发送验证请求
+   - **Token**: randomly generated or custom (used for signature verification)
+   - **EncodingAESKey**: click "Random Generate" to create a 43-character key
+3. When you click "Save", WeCom will send a verification request
 
-### 3. MilliBee 配置
+### 3. MilliBee Configuration
 
-在 `config.json` 中添加以下配置：
+Add the following to `config.json`:
 
 ```json
 {
   "channels": {
     "wecom_app": {
       "enabled": true,
-      "corp_id": "wwxxxxxxxxxxxxxxxx",           // 企业ID
-      "corp_secret": "xxxxxxxxxxxxxxxxxxxxxxxx", // 应用Secret
-      "agent_id": 1000002,                        // 应用AgentId
-      "token": "your_token",                      // 接收消息配置的Token
-      "encoding_aes_key": "your_encoding_aes_key", // 接收消息配置的EncodingAESKey
+      "corp_id": "wwxxxxxxxxxxxxxxxx",
+      "corp_secret": "xxxxxxxxxxxxxxxxxxxxxxxx",
+      "agent_id": 1000002,
+      "token": "your_token",
+      "encoding_aes_key": "your_encoding_aes_key",
       "webhook_host": "0.0.0.0",
       "webhook_port": 18792,
       "webhook_path": "/webhook/wecom-app",
@@ -55,63 +55,63 @@
 }
 ```
 
-## 常见问题
+## Troubleshooting
 
-### 1. 回调URL验证失败
+### 1. Callback URL Verification Failed
 
-**症状**: 企业微信保存API接收消息时提示验证失败
+**Symptom**: WeCom shows verification failure when saving the API message receiver
 
-**检查项**:
-- 确认服务器防火墙已开放 18792 端口
-- 确认 `corp_id`、`token`、`encoding_aes_key` 配置正确
-- 查看 MilliBee 日志是否有请求到达
+**Checklist**:
+- Confirm your server firewall allows port 18792
+- Confirm `corp_id`, `token`, and `encoding_aes_key` are correct
+- Check MilliBee logs for incoming requests
 
-### 2. 中文消息解密失败
+### 2. Message Decryption Failed
 
-**症状**: 发送中文消息时出现 `invalid padding size` 错误
+**Symptom**: `invalid padding size` error when receiving messages
 
-**原因**: 企业微信使用非标准的 PKCS7 填充（32字节块大小）
+**Cause**: WeCom uses non-standard PKCS7 padding (32-byte block size)
 
-**解决**: 确保使用最新版本的 MilliBee，已修复此问题。
+**Fix**: Ensure you are using the latest version of MilliBee, which handles this correctly.
 
-### 3. 端口冲突
+### 3. Port Conflict
 
-**症状**: 启动时提示端口已被占用
+**Symptom**: Port already in use error on startup
 
-**解决**: 修改 `webhook_port` 为其他端口，如 18794
+**Fix**: Change `webhook_port` to another port, e.g. 18794
 
-## 技术细节
+## Technical Details
 
-### 加密算法
+### Encryption
 
-- **算法**: AES-256-CBC
-- **密钥**: EncodingAESKey Base64解码后的32字节
-- **IV**: AESKey的前16字节
-- **填充**: PKCS7（块大小为32字节，非标准16字节）
-- **消息格式**: XML
+- **Algorithm**: AES-256-CBC
+- **Key**: EncodingAESKey Base64-decoded to 32 bytes
+- **IV**: First 16 bytes of AESKey
+- **Padding**: PKCS7 (32-byte block size, non-standard)
+- **Message format**: XML
 
-### 消息结构
+### Message Structure
 
-解密后的消息格式：
+Decrypted message format:
 ```
 random(16B) + msg_len(4B) + msg + receiveid
 ```
 
-其中 `receiveid` 对于自建应用是 `corp_id`。
+For custom apps, `receiveid` is the `corp_id`.
 
-## 调试
+## Debugging
 
-启用调试模式查看详细日志：
+Enable debug mode for detailed logs:
 
 ```bash
 millibee gateway --debug
 ```
 
-关键日志标识：
-- `wecom_app`: WeCom App 通道相关日志
-- `wecom_common`: 加密解密相关日志
+Key log tags:
+- `wecom_app`: WeCom App channel logs
+- `wecom_common`: encryption/decryption logs
 
-## 参考文档
+## References
 
-- [企业微信官方文档 - 接收消息](https://developer.work.weixin.qq.com/document/path/96211)
-- [企业微信官方加解密库](https://github.com/sbzhu/weworkapi_golang)
+- [WeCom Official Docs - Receiving Messages](https://developer.work.weixin.qq.com/document/path/96211)
+- [WeCom Official Crypto Library](https://github.com/sbzhu/weworkapi_golang)

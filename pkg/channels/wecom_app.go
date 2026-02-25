@@ -1,5 +1,5 @@
 // MilliBee - Ultra-lightweight personal AI agent
-// WeCom App (企业微信自建应用) channel implementation
+// WeCom App channel implementation
 // Supports receiving messages via webhook callback and sending messages proactively
 
 package channels
@@ -27,7 +27,7 @@ const (
 	wecomAPIBase = "https://qyapi.weixin.qq.com"
 )
 
-// WeComAppChannel implements the Channel interface for WeCom App (企业微信自建应用)
+// WeComAppChannel implements the Channel interface for WeCom App
 type WeComAppChannel struct {
 	*BaseChannel
 	config        config.WeComAppConfig
@@ -293,7 +293,7 @@ func (c *WeComAppChannel) handleVerification(ctx context.Context, w http.Respons
 	logger.DebugC("wecom_app", "Signature verification passed")
 
 	// Decrypt echostr with CorpID verification
-	// For WeCom App (自建应用), receiveid should be corp_id
+	// For WeCom App, receiveid should be corp_id
 	logger.DebugCF("wecom_app", "Attempting to decrypt echostr", map[string]any{
 		"encoding_aes_key": c.config.EncodingAESKey,
 		"corp_id":          c.config.CorpID,
@@ -364,7 +364,7 @@ func (c *WeComAppChannel) handleMessageCallback(ctx context.Context, w http.Resp
 	}
 
 	// Decrypt message with CorpID verification
-	// For WeCom App (自建应用), receiveid should be corp_id
+	// For WeCom App, receiveid should be corp_id
 	decryptedMsg, err := WeComDecryptMessageWithVerify(encryptedMsg.Encrypt, c.config.EncodingAESKey, c.config.CorpID)
 	if err != nil {
 		logger.ErrorCF("wecom_app", "Failed to decrypt message", map[string]any{

@@ -125,7 +125,7 @@ func DefaultConfig() *Config {
 			// Add your API key to the model you want to use
 			// ============================================
 
-			// Zhipu AI (智谱) - https://open.bigmodel.cn/usercenter/apikeys
+			// Zhipu AI - https://open.bigmodel.cn/usercenter/apikeys
 			{
 				ModelName: "glm-4.7",
 				Model:     "zhipu/glm-4.7",
@@ -165,7 +165,7 @@ func DefaultConfig() *Config {
 				APIKey:    "",
 			},
 
-			// Qwen (通义千问) - https://dashscope.console.aliyun.com/apiKey
+			// Qwen - https://dashscope.console.aliyun.com/apiKey
 			{
 				ModelName: "qwen-plus",
 				Model:     "qwen/qwen-plus",
@@ -173,7 +173,7 @@ func DefaultConfig() *Config {
 				APIKey:    "",
 			},
 
-			// Moonshot (月之暗面) - https://platform.moonshot.cn/console/api-keys
+			// Moonshot - https://platform.moonshot.cn/console/api-keys
 			{
 				ModelName: "moonshot-v1-8k",
 				Model:     "moonshot/moonshot-v1-8k",
@@ -219,7 +219,7 @@ func DefaultConfig() *Config {
 				APIKey:    "",
 			},
 
-			// Volcengine (火山引擎) - https://console.volcengine.com/ark
+			// Volcengine - https://console.volcengine.com/ark
 			{
 				ModelName: "doubao-pro",
 				Model:     "volcengine/doubao-pro-32k",
@@ -227,7 +227,7 @@ func DefaultConfig() *Config {
 				APIKey:    "",
 			},
 
-			// ShengsuanYun (神算云)
+			// ShengsuanYun
 			{
 				ModelName: "deepseek-v3",
 				Model:     "shengsuanyun/deepseek-v3",

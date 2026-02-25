@@ -1,5 +1,5 @@
 // MilliBee - Ultra-lightweight personal AI agent
-// WeCom Bot (企业微信智能机器人) channel tests
+// WeCom Bot channel tests
 
 package channels
 

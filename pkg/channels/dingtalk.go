@@ -17,7 +17,7 @@ import (
 	"github.com/develder/millibee/pkg/utils"
 )
 
-// DingTalkChannel implements the Channel interface for DingTalk (钉钉)
+// DingTalkChannel implements the Channel interface for DingTalk
 // It uses WebSocket for receiving messages via stream mode and API for sending
 type DingTalkChannel struct {
 	*BaseChannel
