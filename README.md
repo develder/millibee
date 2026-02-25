@@ -5,7 +5,7 @@
   <h1>MilliBee</h1>
   <p><i>She ships.</i></p>
 
-  <h3>Lean AI Assistant &middot; 13 Git Tools &middot; Streaming Output &middot; Runs Anywhere</h3>
+  <h3>Lean AI Coding Assistant &middot; Dockerized &middot; SSH TUI &middot; Security-First</h3>
 
   <p>
     <img src="https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go&logoColor=white" alt="Go">
@@ -18,61 +18,75 @@
 
 ---
 
-**MilliBee** is a lean, dockerized AI assistant built in Go. She's small, fast, and doesn't mess around.
+**MilliBee** is a lean, dockerized AI coding assistant built in Go. Single binary, < 10MB RAM, boots in under a second.
 
-Fork of [PicoClaw](https://github.com/sipeed/picoclaw) — stripped of the hardware marketing, sharpened into a practical coding companion with native git integration and streaming responses.
+Started as a fork of [PicoClaw](https://github.com/sipeed/picoclaw). Stripped the hardware marketing, added security hardening, a memory vault, SSH-accessible TUI, native git tools, and streaming responses. The result: a practical self-hosted coding companion you SSH into from anywhere on your network.
 
-## What She Does
+## Niche
 
-- **13 native git tools** — status, diff, log, show, branch, commit, add, reset, checkout, pull, merge, stash, push. No shell injection, configurable push policy.
-- **Streaming output** — tokens appear as the LLM thinks. Anthropic and OpenAI-compatible providers supported.
-- **< 10MB RAM** — single Go binary, boots in under a second.
-- **Multi-channel** — Telegram, Discord, QQ, DingTalk, LINE, WeCom, or just your terminal.
-- **Multi-provider** — OpenAI, Anthropic, DeepSeek, Zhipu, Groq, Ollama, OpenRouter, and 15+ more. Zero-code provider addition via `model_list` config.
-- **Memory vault** — persistent notes the agent can save, search, and recall across sessions.
-- **Tool sandbox** — workspace-restricted file ops, exec safety guards, configurable security policies.
+MilliBee is not trying to be Claude Code or Cursor. She's the **self-hosted, always-on AI assistant** that runs on your home server or NAS:
+
+- **SSH in from any device** — laptop, tablet, phone terminal. No browser, no desktop app, no subscriptions.
+- **Your keys, your data** — config and memory vault live on your machine. Nothing leaves your network except API calls.
+- **Multi-channel** — same assistant answers on Telegram, Discord, and your terminal. One config, one brain.
+- **Tiny footprint** — runs alongside your other Docker services without hogging resources.
+
+## What MilliBee Adds
+
+Everything below was built on top of PicoClaw's foundation:
+
+| Feature | Description |
+|---------|-------------|
+| **Security hardening** | AES-256-GCM encrypted credentials at rest, exec safety guards, SSRF protection, rate limiting, input validation middleware |
+| **Memory vault** | Persistent notes the agent can save, search, and recall across sessions. Nightly index rebuild. Wikilink support. |
+| **SSH TUI channel** | Bubble Tea chat interface served over SSH via [Wish](https://github.com/charmbracelet/wish). `ssh user@host -p 2222` and you're in. |
+| **13 native git tools** | status, diff, log, show, branch, commit, add, reset, checkout, pull, merge, stash, push. No shell injection, configurable push policy. |
+| **Deep scrape** | Full-page web scraping via Crawl4AI sidecar. JavaScript rendering, markdown extraction. |
+| **YouTube transcripts** | Extract transcripts from YouTube videos via sidecar API. |
+| **Audio transcription** | Speech-to-text via Whisper ASR sidecar. |
+| **Streaming output** | Tokens appear as the LLM thinks. Anthropic and OpenAI-compatible providers. |
+| **Native Anthropic SDK** | Direct Anthropic API integration (not OpenAI-compat shim). |
+| **Docker services** | Compose stack with Crawl4AI, Whisper ASR, YouTube Transcript API sidecars. |
 
 ## Quick Start
 
 ### Docker (recommended)
 
 ```bash
-git clone https://github.com/helio1973/picoclaw.git milliclaw
-cd milliclaw
+git clone https://github.com/develder/millibee.git
+cd millibee
 
 cp config/config.example.json config/config.json
-# Edit config.json — set your API key
+# Edit config.json — set your API key and SSH password
 
 docker compose -f docker/docker-compose.yml --profile gateway up -d
+
+# Connect via SSH
+ssh localhost -p 2222
 ```
 
 One-shot mode:
 
 ```bash
-docker compose -f docker/docker-compose.yml run --rm picoclaw-agent -m "Explain this repo's architecture"
+docker compose -f docker/docker-compose.yml run --rm millibee-agent -m "Explain this repo's architecture"
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/helio1973/picoclaw.git milliclaw
-cd milliclaw
+git clone https://github.com/develder/millibee.git
+cd millibee
 make build
 
-# Alias it
-alias milli='./build/picoclaw'
+alias milli='./build/millibee'
 
 milli onboard
 milli agent -m "Hello"
 ```
 
-### Binary
-
-Download from [releases](https://github.com/helio1973/picoclaw/releases), rename to `milli`, done.
-
 ## Configuration
 
-Config lives at `~/.picoclaw/config.json`.
+Config lives at `~/.millibee/config.json`.
 
 ### Minimal Config
 
@@ -88,11 +102,27 @@ Config lives at `~/.picoclaw/config.json`.
   "agents": {
     "defaults": {
       "model": "claude-sonnet-4.6",
-      "workspace": "~/.picoclaw/workspace"
+      "workspace": "~/.millibee/workspace"
     }
   }
 }
 ```
+
+### SSH Channel Config
+
+```json
+{
+  "channels": {
+    "ssh": {
+      "enabled": true,
+      "address": "0.0.0.0:2222",
+      "password": "your-password"
+    }
+  }
+}
+```
+
+Connect with: `ssh anyuser@your-host -p 2222`
 
 ### Git Tools Config
 
@@ -109,44 +139,19 @@ Git tools are enabled by default. Push is disabled by default (opt-in for safety
 }
 ```
 
-Available git tools:
-
-| Tool | Description | Key Parameters |
-|------|-------------|----------------|
-| `git_status` | Working tree status | — |
-| `git_diff` | Show changes | `staged`, `file` |
-| `git_log` | Commit history | `max_count`, `oneline`, `file` |
-| `git_show` | Commit details | `ref` |
-| `git_branch` | List/create branches | `name`, `list` |
-| `git_commit` | Create commit | `message`, `files` |
-| `git_add` | Stage files | `files` |
-| `git_reset` | Unstage files | `files` |
-| `git_checkout` | Switch branch/restore | `ref` |
-| `git_pull` | Pull from remote | `remote`, `branch` |
-| `git_merge` | Merge branch | `branch` |
-| `git_stash` | Stash changes | `action` (push/pop/list), `message` |
-| `git_push` | Push to remote | `remote`, `branch` |
-
-### Streaming
-
-Streaming works automatically when your provider supports it. Anthropic and OpenAI-compatible providers stream out of the box. The TUI shows tokens as they arrive; non-streaming providers fall back gracefully.
-
 ### Providers
 
 | Vendor | Prefix | Protocol |
 |--------|--------|----------|
-| OpenAI | `openai/` | OpenAI |
 | Anthropic | `anthropic/` | Anthropic |
+| OpenAI | `openai/` | OpenAI |
 | DeepSeek | `deepseek/` | OpenAI |
-| Zhipu | `zhipu/` | OpenAI |
 | Groq | `groq/` | OpenAI |
 | Ollama | `ollama/` | OpenAI |
 | OpenRouter | `openrouter/` | OpenAI |
 | Cerebras | `cerebras/` | OpenAI |
 | Qwen | `qwen/` | OpenAI |
 | Gemini | `gemini/` | OpenAI |
-| Moonshot | `moonshot/` | OpenAI |
-| NVIDIA | `nvidia/` | OpenAI |
 | VLLM | `vllm/` | OpenAI |
 
 Use `vendor/model` format in `model_list`. Custom endpoints via `api_base`.
@@ -154,7 +159,30 @@ Use `vendor/model` format in `model_list`. Custom endpoints via `api_base`.
 ### Chat Channels
 
 <details>
-<summary><b>Telegram</b> (easiest)</summary>
+<summary><b>SSH TUI</b> (recommended)</summary>
+
+Built-in Bubble Tea chat interface over SSH. Full markdown rendering, streaming, and a spinner.
+
+```json
+{
+  "channels": {
+    "ssh": {
+      "enabled": true,
+      "address": "0.0.0.0:2222",
+      "password": "secret"
+    }
+  }
+}
+```
+
+```bash
+ssh user@your-host -p 2222
+```
+
+</details>
+
+<details>
+<summary><b>Telegram</b></summary>
 
 1. Talk to `@BotFather`, create bot, copy token
 2. Add to config:
@@ -200,66 +228,26 @@ Use `vendor/model` format in `model_list`. Custom endpoints via `api_base`.
 
 </details>
 
-<details>
-<summary><b>Console</b> (terminal, no setup)</summary>
-
-```bash
-milli tui
-```
-
-Full Bubble Tea TUI with streaming, markdown rendering, and a spinner.
-
-</details>
-
-Other channels: QQ, DingTalk, LINE, WeCom — see [upstream docs](https://github.com/sipeed/picoclaw#-chat-apps).
+Other channels: QQ, DingTalk, LINE, WeCom — inherited from PicoClaw, see config examples.
 
 ## Architecture
 
 ```
-milli gateway          milli agent -m "..."       milli tui
-     │                        │                       │
-     ▼                        ▼                       ▼
- MessageBus ──► AgentLoop ◄── ProcessDirect    ProcessDirectStreaming
-                    │                                  │
-                    ▼                                  ▼
-              ToolRegistry                    StreamingLLMProvider
-              (13 git tools                   (ChatStream + onChunk)
-               + file ops
-               + exec
-               + memory
-               + web search)
+milli gateway                    ssh user@host -p 2222
+     │                                  │
+     ▼                                  ▼
+ ChannelManager ◄── SSH Channel (Wish + Bubble Tea)
+     │               Telegram
+     │               Discord
+     ▼
+ MessageBus ──► AgentLoop ──► ToolRegistry
+                    │          (13 git tools
+                    ▼           + file ops
+              LLMProvider       + exec
+              (Anthropic        + memory vault
+               OpenAI-compat    + deep scrape
+               streaming)       + web search)
 ```
-
-### Key Interfaces
-
-```go
-// Standard provider
-type LLMProvider interface {
-    Chat(ctx, messages, tools, model, options) (*LLMResponse, error)
-}
-
-// Streaming provider (optional, non-breaking)
-type StreamingLLMProvider interface {
-    LLMProvider
-    ChatStream(ctx, messages, tools, model, options, onChunk) (*LLMResponse, error)
-}
-
-// Tool interface
-type Tool interface {
-    Name() string
-    Description() string
-    Parameters() map[string]any
-    Execute(ctx, args) *ToolResult
-}
-```
-
-## Security
-
-- **Workspace sandbox**: file tools restricted to workspace by default
-- **Exec guards**: blocks `rm -rf`, `format`, `dd`, fork bombs, etc.
-- **Git push opt-in**: `allow_push: false` by default
-- **No shell interpolation**: git tools use `exec.Command("git", ...)` directly
-- **Per-tool policies**: enable/disable, rate limits, max arg size
 
 ## CLI
 
@@ -268,15 +256,24 @@ type Tool interface {
 | `milli onboard` | Initialize config & workspace |
 | `milli agent -m "..."` | One-shot chat |
 | `milli agent` | Interactive CLI |
-| `milli tui` | Bubble Tea TUI with streaming |
-| `milli gateway` | Start multi-channel gateway |
+| `milli gateway` | Start multi-channel gateway (includes SSH TUI) |
 | `milli status` | Show status |
 | `milli cron list` | List scheduled jobs |
+
+## Security
+
+- **Encrypted credentials** — AES-256-GCM at rest for API keys and tokens
+- **Workspace sandbox** — file tools restricted to workspace by default
+- **Exec guards** — blocks `rm -rf`, `format`, `dd`, fork bombs, etc.
+- **SSRF protection** — web_fetch validates URLs against internal networks
+- **Rate limiting** — per-tool rate limits and concurrency caps
+- **Git push opt-in** — `allow_push: false` by default
+- **No shell interpolation** — git tools use `exec.Command("git", ...)` directly
 
 ## Workspace Layout
 
 ```
-~/.picoclaw/workspace/
+~/.millibee/workspace/
 ├── sessions/          # Conversation history
 ├── memory/            # Persistent memory vault
 ├── state/             # Runtime state

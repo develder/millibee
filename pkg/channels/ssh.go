@@ -19,10 +19,10 @@ import (
 	"github.com/charmbracelet/wish/activeterm"
 	"github.com/charmbracelet/wish/bubbletea"
 
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/tui"
+	"github.com/develder/millibee/pkg/bus"
+	"github.com/develder/millibee/pkg/config"
+	"github.com/develder/millibee/pkg/logger"
+	"github.com/develder/millibee/pkg/tui"
 )
 
 // SSHChannel implements the Channel interface using a Wish SSH server

@@ -1,6 +1,6 @@
 # Tools Configuration
 
-PicoClaw's tools configuration is located in the `tools` field of `config.json`.
+MilliBee's tools configuration is located in the `tools` field of `config.json`.
 
 ## Directory Structure
 
@@ -63,7 +63,7 @@ Metadata endpoints (`metadata.google.internal`) are **always** blocked, even if 
 }
 ```
 
-Environment variable: `PICOCLAW_TOOLS_WEB_ALLOWED_HOSTS=crawl4ai,ollama`
+Environment variable: `MILLIBEE_TOOLS_WEB_ALLOWED_HOSTS=crawl4ai,ollama`
 
 ## Sidecar Tools
 
@@ -126,10 +126,10 @@ Transcribes audio files to text using speech-to-text.
 ```
 
 Environment variables:
-- `PICOCLAW_SIDECARS_CRAWL4AI_ENABLED=true`
-- `PICOCLAW_SIDECARS_CRAWL4AI_BASE_URL=http://crawl4ai:11235`
-- `PICOCLAW_SIDECARS_YT_TRANSCRIPT_ENABLED=true`
-- `PICOCLAW_SIDECARS_WHISPER_ASR_ENABLED=true`
+- `MILLIBEE_SIDECARS_CRAWL4AI_ENABLED=true`
+- `MILLIBEE_SIDECARS_CRAWL4AI_BASE_URL=http://crawl4ai:11235`
+- `MILLIBEE_SIDECARS_YT_TRANSCRIPT_ENABLED=true`
+- `MILLIBEE_SIDECARS_WHISPER_ASR_ENABLED=true`
 
 ## Exec Tool
 
@@ -147,7 +147,7 @@ The exec tool is used to execute shell commands.
 
 ### Default Blocked Command Patterns
 
-By default, PicoClaw blocks the following dangerous commands:
+By default, MilliBee blocks the following dangerous commands:
 
 - Delete commands: `rm -rf`, `del /f/q`, `rmdir /s`
 - Disk operations: `format`, `mkfs`, `diskpart`, `dd if=`, writing to `/dev/sd*`
@@ -222,11 +222,11 @@ The skills tool configures skill discovery and installation via registries like 
 
 ## Environment Variables
 
-All configuration options can be overridden via environment variables with the format `PICOCLAW_TOOLS_<SECTION>_<KEY>`:
+All configuration options can be overridden via environment variables with the format `MILLIBEE_TOOLS_<SECTION>_<KEY>`:
 
 For example:
-- `PICOCLAW_TOOLS_WEB_BRAVE_ENABLED=true`
-- `PICOCLAW_TOOLS_EXEC_ENABLE_DENY_PATTERNS=false`
-- `PICOCLAW_TOOLS_CRON_EXEC_TIMEOUT_MINUTES=10`
+- `MILLIBEE_TOOLS_WEB_BRAVE_ENABLED=true`
+- `MILLIBEE_TOOLS_EXEC_ENABLE_DENY_PATTERNS=false`
+- `MILLIBEE_TOOLS_CRON_EXEC_TIMEOUT_MINUTES=10`
 
 Note: Array-type environment variables are not currently supported and must be set via the config file.

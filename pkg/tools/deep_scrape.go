@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/logger"
+	"github.com/develder/millibee/pkg/logger"
 )
 
 // DeepScrapeTool scrapes web pages using a headless browser backend (Crawl4AI).

@@ -4,7 +4,7 @@ ARG TARGETPLATFORM
 
 RUN apk add --no-cache ca-certificates tzdata
 
-COPY $TARGETPLATFORM/picoclaw /usr/local/bin/picoclaw
+COPY $TARGETPLATFORM/millibee /usr/local/bin/millibee
 
-ENTRYPOINT ["picoclaw"]
+ENTRYPOINT ["millibee"]
 CMD ["gateway"]

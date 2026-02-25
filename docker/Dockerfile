@@ -1,5 +1,5 @@
 # ============================================================
-# Stage 1: Build the picoclaw binary
+# Stage 1: Build the millibee binary
 # ============================================================
 FROM golang:1.26.0-alpine AS builder
 
@@ -27,23 +27,23 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget -q --spider http://localhost:18790/health || exit 1
 
 # Copy binary and entrypoint
-COPY --from=builder /src/build/picoclaw /usr/local/bin/picoclaw
+COPY --from=builder /src/build/millibee /usr/local/bin/millibee
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Create non-root user and group
-RUN addgroup -g 1000 picoclaw && \
-    adduser -D -u 1000 -G picoclaw picoclaw
+RUN addgroup -g 1000 millibee && \
+    adduser -D -u 1000 -G millibee millibee
 
 # Switch to non-root user
-USER picoclaw
+USER millibee
 
 # Run onboard to create initial directories, config, and skills
-RUN /usr/local/bin/picoclaw onboard
+RUN /usr/local/bin/millibee onboard
 
 # Preserve built-in skills separately so they survive volume mounts.
 # The entrypoint script syncs these into the workspace on startup.
-RUN cp -r /home/picoclaw/.picoclaw/workspace/skills /home/picoclaw/.picoclaw/_builtin_skills
+RUN cp -r /home/millibee/.millibee/workspace/skills /home/millibee/.millibee/_builtin_skills
 
 ENTRYPOINT ["entrypoint.sh"]
 CMD ["gateway"]

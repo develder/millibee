@@ -41,7 +41,7 @@ type streamChunkMsg struct{ chunk string }
 // streamDoneMsg signals that streaming is complete.
 type streamDoneMsg struct{}
 
-// Model is the Bubble Tea model for the PicoClaw TUI.
+// Model is the Bubble Tea model for the MilliBee TUI.
 type Model struct {
 	agent      AgentProcessor
 	sessionKey string

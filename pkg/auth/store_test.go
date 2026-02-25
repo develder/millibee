@@ -103,7 +103,7 @@ func TestStoreFilePermissions(t *testing.T) {
 		t.Fatalf("SetCredential() error: %v", err)
 	}
 
-	path := filepath.Join(tmpDir, ".picoclaw", "auth.json")
+	path := filepath.Join(tmpDir, ".millibee", "auth.json")
 	info, err := os.Stat(path)
 	if err != nil {
 		t.Fatalf("Stat() error: %v", err)
@@ -195,7 +195,7 @@ func TestStoreRoundtrip_WithEncryption(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	t.Setenv("USERPROFILE", tmpDir)
-	t.Setenv("PICOCLAW_MASTER_KEY", "test-master-key")
+	t.Setenv("MILLIBEE_MASTER_KEY", "test-master-key")
 
 	cred := &AuthCredential{
 		AccessToken:  "secret-access-token",
@@ -209,7 +209,7 @@ func TestStoreRoundtrip_WithEncryption(t *testing.T) {
 	}
 
 	// Verify on-disk tokens are encrypted
-	path := filepath.Join(tmpDir, ".picoclaw", "auth.json")
+	path := filepath.Join(tmpDir, ".millibee", "auth.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("ReadFile() error: %v", err)
@@ -254,7 +254,7 @@ func TestStoreRoundtrip_WithoutMasterKey(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	t.Setenv("USERPROFILE", tmpDir)
-	t.Setenv("PICOCLAW_MASTER_KEY", "")
+	t.Setenv("MILLIBEE_MASTER_KEY", "")
 
 	cred := &AuthCredential{
 		AccessToken: "plaintext-token",
@@ -267,7 +267,7 @@ func TestStoreRoundtrip_WithoutMasterKey(t *testing.T) {
 	}
 
 	// Verify on-disk token is plaintext (no encryption without master key)
-	path := filepath.Join(tmpDir, ".picoclaw", "auth.json")
+	path := filepath.Join(tmpDir, ".millibee", "auth.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("ReadFile() error: %v", err)
@@ -295,14 +295,14 @@ func TestStore_DirPermissions(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	t.Setenv("USERPROFILE", tmpDir)
-	t.Setenv("PICOCLAW_MASTER_KEY", "")
+	t.Setenv("MILLIBEE_MASTER_KEY", "")
 
 	cred := &AuthCredential{AccessToken: "x", Provider: "test", AuthMethod: "token"}
 	if err := SetCredential("test", cred); err != nil {
 		t.Fatalf("SetCredential() error: %v", err)
 	}
 
-	dir := filepath.Join(tmpDir, ".picoclaw")
+	dir := filepath.Join(tmpDir, ".millibee")
 	info, err := os.Stat(dir)
 	if err != nil {
 		t.Fatalf("Stat dir: %v", err)

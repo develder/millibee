@@ -9,9 +9,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/tui"
+	"github.com/develder/millibee/pkg/bus"
+	"github.com/develder/millibee/pkg/config"
+	"github.com/develder/millibee/pkg/tui"
 )
 
 func TestNewSSHChannel_Basic(t *testing.T) {

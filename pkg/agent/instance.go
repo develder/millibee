@@ -5,12 +5,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/memory"
-	"github.com/sipeed/picoclaw/pkg/providers"
-	"github.com/sipeed/picoclaw/pkg/routing"
-	"github.com/sipeed/picoclaw/pkg/session"
-	"github.com/sipeed/picoclaw/pkg/tools"
+	"github.com/develder/millibee/pkg/config"
+	"github.com/develder/millibee/pkg/memory"
+	"github.com/develder/millibee/pkg/providers"
+	"github.com/develder/millibee/pkg/routing"
+	"github.com/develder/millibee/pkg/session"
+	"github.com/develder/millibee/pkg/tools"
 )
 
 // AgentInstance represents a fully configured agent with its own workspace,
@@ -178,7 +178,7 @@ func resolveAgentWorkspace(agentCfg *config.AgentConfig, defaults *config.AgentD
 	}
 	home, _ := os.UserHomeDir()
 	id := routing.NormalizeAgentID(agentCfg.ID)
-	return filepath.Join(home, ".picoclaw", "workspace-"+id)
+	return filepath.Join(home, ".millibee", "workspace-"+id)
 }
 
 // resolveAgentModel resolves the primary model for an agent.

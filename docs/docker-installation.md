@@ -1,15 +1,15 @@
 # Docker Installation
 
-Run PicoClaw and its companion services (web scraping, video transcription) using Docker Compose.
+Run MilliBee and its companion services (web scraping, video transcription) using Docker Compose.
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                   picoclaw-net                       │
+│                   millibee-net                       │
 │                                                     │
 │  ┌──────────────┐    ┌──────────────┐               │
-│  │  picoclaw     │───▶│  crawl4ai    │  :11235       │
+│  │  millibee     │───▶│  crawl4ai    │  :11235       │
 │  │  (gateway or  │    │  (scraper)   │               │
 │  │   agent)      │    └──────────────┘               │
 │  │              │    ┌──────────────┐               │
@@ -44,8 +44,8 @@ Run PicoClaw and its companion services (web scraping, video transcription) usin
 ### 1. Clone and enter the repository
 
 ```bash
-git clone https://github.com/helio1973/picoclaw.git
-cd picoclaw
+git clone https://github.com/helio1973/millibee.git
+cd millibee
 ```
 
 ### 2. Create your configuration
@@ -88,18 +88,18 @@ docker compose -f docker/docker-compose.yml up -d crawl4ai yt-transcript whisper
 docker compose -f docker/docker-compose.yml logs -f crawl4ai yt-transcript whisper-asr
 ```
 
-### 5. Start PicoClaw
+### 5. Start MilliBee
 
 **Gateway mode** (long-running bot, connects to Telegram/Discord/etc.):
 
 ```bash
-docker compose -f docker/docker-compose.yml --profile gateway up -d picoclaw-gateway
+docker compose -f docker/docker-compose.yml --profile gateway up -d millibee-gateway
 ```
 
 **Agent mode** (one-shot query):
 
 ```bash
-docker compose -f docker/docker-compose.yml --profile agent run --rm picoclaw-agent -m "Hello, what can you do?"
+docker compose -f docker/docker-compose.yml --profile agent run --rm millibee-agent -m "Hello, what can you do?"
 ```
 
 ### 6. Verify everything is running
@@ -120,14 +120,14 @@ curl http://localhost:9000/docs
 
 ## Services
 
-### PicoClaw (gateway / agent)
+### MilliBee (gateway / agent)
 
 The main AI agent. Runs in two modes:
 
 | Mode | Profile | Command | Description |
 |------|---------|---------|-------------|
 | Gateway | `gateway` | `docker compose -f docker/docker-compose.yml --profile gateway up -d` | Long-running bot with channel integrations |
-| Agent | `agent` | `docker compose -f docker/docker-compose.yml --profile agent run --rm picoclaw-agent -m "..."` | One-shot query, exits when done |
+| Agent | `agent` | `docker compose -f docker/docker-compose.yml --profile agent run --rm millibee-agent -m "..."` | One-shot query, exits when done |
 
 **Exposed port:** 18790 (gateway health check)
 
@@ -195,17 +195,17 @@ For CPU-only setups, `base` or `small` is recommended. Use `large-v3` only with 
 
 | Volume | Mount | Purpose |
 |--------|-------|---------|
-| `picoclaw-workspace` | Named volume | Agent workspace (skills, files) |
+| `millibee-workspace` | Named volume | Agent workspace (skills, files) |
 | `crawl4ai-data` | Named volume | Crawl4AI browser cache |
 | `whisper-cache` | Named volume | Downloaded Whisper models |
-| `config/config.json` | Bind mount (read-only) | PicoClaw configuration |
+| `config/config.json` | Bind mount (read-only) | MilliBee configuration |
 | `${MEMORY_VAULT_PATH}` | Bind mount | Memory vault (accessible from host) |
 
 The memory vault is bind-mounted so its contents are directly accessible from the host filesystem at the configured path (default: `./data/memory`).
 
 ## Networking
 
-All services communicate over the `picoclaw-net` bridge network using container names as hostnames. The native sidecar tools (`deep_scrape`, `youtube_transcript`, `transcribe_audio`) call these services directly using the configured `base_url` — no SSRF allowlist needed for them.
+All services communicate over the `millibee-net` bridge network using container names as hostnames. The native sidecar tools (`deep_scrape`, `youtube_transcript`, `transcribe_audio`) call these services directly using the configured `base_url` — no SSRF allowlist needed for them.
 
 If you also want to reach the sidecar services via `web_fetch` (e.g., from a skill), add them to the allowlist:
 
@@ -222,14 +222,14 @@ If you also want to reach the sidecar services via `web_fetch` (e.g., from a ski
 docker compose -f docker/docker-compose.yml logs -f
 
 # Specific service
-docker compose -f docker/docker-compose.yml logs -f picoclaw-gateway
+docker compose -f docker/docker-compose.yml logs -f millibee-gateway
 ```
 
 ### Rebuild after code changes
 
 ```bash
-docker compose -f docker/docker-compose.yml build picoclaw-gateway picoclaw-agent
-docker compose -f docker/docker-compose.yml --profile gateway up -d picoclaw-gateway
+docker compose -f docker/docker-compose.yml build millibee-gateway millibee-agent
+docker compose -f docker/docker-compose.yml --profile gateway up -d millibee-gateway
 ```
 
 ### Stop everything
@@ -271,7 +271,7 @@ Skills are synced by the entrypoint script (`docker/entrypoint.sh`). Existing sk
 Verify all services are on the same network:
 
 ```bash
-docker network inspect picoclaw_picoclaw-net
+docker network inspect millibee_millibee-net
 ```
 
 ### Whisper ASR is slow
@@ -281,7 +281,7 @@ The default `base` model is optimized for CPU. If transcription is too slow:
 1. Try the `tiny` model: set `WHISPER_MODEL=tiny` in `.env`
 2. For better quality with GPU, use `large-v3` with the GPU image variant
 
-### PicoClaw can't reach companion services
+### MilliBee can't reach companion services
 
 Check that `allowed_hosts` in `config/config.json` includes the service hostnames. Without this, the SSRF protection blocks requests to private Docker network IPs.
 
@@ -290,13 +290,13 @@ Check that `allowed_hosts` in `config/config.json` includes the service hostname
 The entrypoint script syncs skills on startup. Check the logs:
 
 ```bash
-docker compose -f docker/docker-compose.yml logs picoclaw-gateway | grep "Installed built-in skill"
+docker compose -f docker/docker-compose.yml logs millibee-gateway | grep "Installed built-in skill"
 ```
 
 If skills are still missing, remove the workspace volume and restart:
 
 ```bash
 docker compose -f docker/docker-compose.yml --profile gateway down
-docker volume rm picoclaw_picoclaw-workspace
+docker volume rm millibee_millibee-workspace
 docker compose -f docker/docker-compose.yml --profile gateway up -d
 ```

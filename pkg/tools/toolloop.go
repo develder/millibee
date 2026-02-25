@@ -1,8 +1,8 @@
-// PicoClaw - Ultra-lightweight personal AI agent
+// MilliBee - Ultra-lightweight personal AI agent
 // Inspired by and based on nanobot: https://github.com/HKUDS/nanobot
 // License: MIT
 //
-// Copyright (c) 2026 PicoClaw contributors
+// Copyright (c) 2026 MilliBee contributors
 
 package tools
 
@@ -11,9 +11,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/providers"
-	"github.com/sipeed/picoclaw/pkg/utils"
+	"github.com/develder/millibee/pkg/logger"
+	"github.com/develder/millibee/pkg/providers"
+	"github.com/develder/millibee/pkg/utils"
 )
 
 // ToolLoopConfig configures the tool execution loop.

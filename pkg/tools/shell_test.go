@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/develder/millibee/pkg/config"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -1,10 +1,10 @@
 #!/bin/sh
-# Entrypoint for picoclaw Docker container.
+# Entrypoint for millibee Docker container.
 # Syncs built-in skills to the workspace volume on first run,
 # so volume mounts don't hide embedded skills.
 
-WORKSPACE="$HOME/.picoclaw/workspace"
-SKILLS_SRC="$HOME/.picoclaw/_builtin_skills"
+WORKSPACE="$HOME/.millibee/workspace"
+SKILLS_SRC="$HOME/.millibee/_builtin_skills"
 SKILLS_DST="$WORKSPACE/skills"
 
 # If built-in skills source exists (copied during image build),
@@ -28,4 +28,4 @@ fi
 # Ensure memory directory exists (for bind mount)
 mkdir -p "$WORKSPACE/memory"
 
-exec picoclaw "$@"
+exec millibee "$@"

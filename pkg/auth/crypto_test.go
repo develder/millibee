@@ -131,14 +131,14 @@ func TestEncrypt_EmptyString(t *testing.T) {
 }
 
 func TestGetMasterKey_EnvVar(t *testing.T) {
-	t.Setenv("PICOCLAW_MASTER_KEY", "test-master")
+	t.Setenv("MILLIBEE_MASTER_KEY", "test-master")
 	if got := GetMasterKey(); got != "test-master" {
 		t.Errorf("GetMasterKey() = %q, want %q", got, "test-master")
 	}
 }
 
 func TestGetMasterKey_Unset(t *testing.T) {
-	t.Setenv("PICOCLAW_MASTER_KEY", "")
+	t.Setenv("MILLIBEE_MASTER_KEY", "")
 	if got := GetMasterKey(); got != "" {
 		t.Errorf("GetMasterKey() should be empty when env unset, got %q", got)
 	}

@@ -1,8 +1,8 @@
-// PicoClaw - Ultra-lightweight personal AI agent
+// MilliBee - Ultra-lightweight personal AI agent
 // Inspired by and based on nanobot: https://github.com/HKUDS/nanobot
 // License: MIT
 //
-// Copyright (c) 2026 PicoClaw contributors
+// Copyright (c) 2026 MilliBee contributors
 
 package agent
 
@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/memory"
+	"github.com/develder/millibee/pkg/memory"
 )
 
 // MemoryStore manages persistent memory for the agent.

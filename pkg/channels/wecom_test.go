@@ -1,4 +1,4 @@
-// PicoClaw - Ultra-lightweight personal AI agent
+// MilliBee - Ultra-lightweight personal AI agent
 // WeCom Bot (企业微信智能机器人) channel tests
 
 package channels
@@ -20,8 +20,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/develder/millibee/pkg/bus"
+	"github.com/develder/millibee/pkg/config"
 )
 
 // generateTestAESKey generates a valid test AES key

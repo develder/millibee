@@ -1,4 +1,4 @@
-// PicoClaw - Ultra-lightweight personal AI agent
+// MilliBee - Ultra-lightweight personal AI agent
 // WeCom Bot (企业微信智能机器人) channel implementation
 // Uses webhook callback mode for receiving messages and webhook API for sending replies
 
@@ -22,10 +22,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/utils"
+	"github.com/develder/millibee/pkg/bus"
+	"github.com/develder/millibee/pkg/config"
+	"github.com/develder/millibee/pkg/logger"
+	"github.com/develder/millibee/pkg/utils"
 )
 
 // WeComBotChannel implements the Channel interface for WeCom Bot (企业微信智能机器人)

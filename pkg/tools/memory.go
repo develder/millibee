@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sipeed/picoclaw/pkg/memory"
+	"github.com/develder/millibee/pkg/memory"
 )
 
 // MemorySaveTool saves a structured note to the memory vault with frontmatter.

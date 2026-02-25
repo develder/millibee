@@ -1,6 +1,6 @@
 # Tools Reference
 
-Complete overview of all native tools available to PicoClaw agents.
+Complete overview of all native tools available to MilliBee agents.
 
 ## Filesystem Tools
 
@@ -179,24 +179,24 @@ Available on Linux for IoT/embedded use cases. Return errors on other platforms.
 
 ## CLI Modes
 
-PicoClaw provides three ways to interact with the agent:
+MilliBee provides three ways to interact with the agent:
 
 ### Agent Mode (basic)
 
 ```bash
-picoclaw agent -m "Hello"          # One-shot query
-picoclaw agent                      # Interactive REPL (readline)
-picoclaw agent -s my-session        # Custom session
-picoclaw agent --model claude-sonnet-4.6  # Override model
+millibee agent -m "Hello"          # One-shot query
+millibee agent                      # Interactive REPL (readline)
+millibee agent -s my-session        # Custom session
+millibee agent --model claude-sonnet-4.6  # Override model
 ```
 
 ### TUI Mode (rich terminal UI)
 
 ```bash
-picoclaw tui                        # Full-screen Bubble Tea UI
-picoclaw chat                       # Alias for tui
-picoclaw tui -s my-session          # Custom session
-picoclaw tui --model claude-sonnet-4.6    # Override model
+millibee tui                        # Full-screen Bubble Tea UI
+millibee chat                       # Alias for tui
+millibee tui -s my-session          # Custom session
+millibee tui --model claude-sonnet-4.6    # Override model
 ```
 
 Features: markdown rendering (Glamour), scrollable chat history, multi-line input, thinking spinner. Uses the same `AgentLoop.ProcessDirect()` as agent mode.
@@ -204,7 +204,7 @@ Features: markdown rendering (Glamour), scrollable chat history, multi-line inpu
 ### Gateway Mode (long-running bot)
 
 ```bash
-picoclaw gateway                    # Start with all enabled channels
+millibee gateway                    # Start with all enabled channels
 ```
 
 Connects to external platforms (Telegram, Discord, Slack, etc.) via the channel system. See `config.json` for channel configuration.

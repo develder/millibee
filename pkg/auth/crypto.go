@@ -20,9 +20,9 @@ func DeriveKey(masterSecret string) []byte {
 	return h[:]
 }
 
-// GetMasterKey reads the master key from the PICOCLAW_MASTER_KEY environment variable.
+// GetMasterKey reads the master key from the MILLIBEE_MASTER_KEY environment variable.
 func GetMasterKey() string {
-	return os.Getenv("PICOCLAW_MASTER_KEY")
+	return os.Getenv("MILLIBEE_MASTER_KEY")
 }
 
 // Encrypt encrypts plaintext using AES-256-GCM and returns "enc:v1:<base64>".

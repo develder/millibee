@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sipeed/picoclaw/pkg/memory"
+	"github.com/develder/millibee/pkg/memory"
 )
 
 // --- MemorySaveTool tests ---

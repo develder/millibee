@@ -1,4 +1,4 @@
-module github.com/sipeed/picoclaw
+module github.com/develder/millibee
 
 go 1.25.7
 
