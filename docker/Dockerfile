@@ -20,7 +20,10 @@ RUN make build
 # ============================================================
 FROM alpine:3.23
 
-RUN apk add --no-cache ca-certificates tzdata curl yt-dlp git
+RUN apk add --no-cache ca-certificates tzdata curl yt-dlp git sudo \
+    go make gcc musl-dev \
+    nodejs npm \
+    python3 py3-pip
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
@@ -31,9 +34,10 @@ COPY --from=builder /src/build/millibee /usr/local/bin/millibee
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Create non-root user and group
+# Create non-root user with passwordless sudo for package management
 RUN addgroup -g 1000 millibee && \
-    adduser -D -u 1000 -G millibee millibee
+    adduser -D -u 1000 -G millibee millibee && \
+    echo "millibee ALL=(root) NOPASSWD: /sbin/apk" > /etc/sudoers.d/millibee
 
 # Switch to non-root user
 USER millibee
