@@ -484,8 +484,10 @@ func (al *AgentLoop) runAgentLoop(ctx context.Context, agent *AgentInstance, opt
 		opts.ChatID,
 	)
 
-	// 3. Save user message to session
-	agent.Sessions.AddMessage(opts.SessionKey, "user", opts.UserMessage)
+	// 3. Save user message to session (skip for stateless requests like heartbeat)
+	if !opts.NoHistory {
+		agent.Sessions.AddMessage(opts.SessionKey, "user", opts.UserMessage)
+	}
 
 	// 4. Run LLM iteration loop
 	finalContent, iteration, err := al.runLLMIteration(ctx, agent, messages, opts)
@@ -501,9 +503,11 @@ func (al *AgentLoop) runAgentLoop(ctx context.Context, agent *AgentInstance, opt
 		finalContent = opts.DefaultResponse
 	}
 
-	// 6. Save final assistant message to session
-	agent.Sessions.AddMessage(opts.SessionKey, "assistant", finalContent)
-	agent.Sessions.Save(opts.SessionKey)
+	// 6. Save final assistant message to session (skip for stateless requests like heartbeat)
+	if !opts.NoHistory {
+		agent.Sessions.AddMessage(opts.SessionKey, "assistant", finalContent)
+		agent.Sessions.Save(opts.SessionKey)
+	}
 
 	// 7. Optional: send response via bus (before summarization to avoid race)
 	if opts.SendResponse {
