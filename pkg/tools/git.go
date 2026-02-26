@@ -75,7 +75,9 @@ func NewGitStatusTool(workspace string, restrict bool) *GitStatusTool {
 }
 
 func (t *GitStatusTool) Name() string        { return "git_status" }
-func (t *GitStatusTool) Description() string { return "Show the working tree status (staged, unstaged, untracked files)" }
+func (t *GitStatusTool) Description() string {
+	return "Show the working tree status (staged, unstaged, untracked files). Set repo to target a git repo in a subdirectory, e.g. repo='projects/myapp'."
+}
 func (t *GitStatusTool) Parameters() map[string]any {
 	return map[string]any{
 		"type": "object",
@@ -108,7 +110,9 @@ func NewGitDiffTool(workspace string, restrict bool) *GitDiffTool {
 }
 
 func (t *GitDiffTool) Name() string        { return "git_diff" }
-func (t *GitDiffTool) Description() string { return "Show changes between commits, staging area, and working tree" }
+func (t *GitDiffTool) Description() string {
+	return "Show changes between commits, staging area, and working tree. Set repo to target a git repo in a subdirectory, e.g. repo='projects/myapp'."
+}
 func (t *GitDiffTool) Parameters() map[string]any {
 	return map[string]any{
 		"type": "object",
@@ -159,7 +163,9 @@ func NewGitLogTool(workspace string, restrict bool) *GitLogTool {
 }
 
 func (t *GitLogTool) Name() string        { return "git_log" }
-func (t *GitLogTool) Description() string { return "Show the commit history" }
+func (t *GitLogTool) Description() string {
+	return "Show the commit history. Set repo to target a git repo in a subdirectory, e.g. repo='projects/myapp'."
+}
 func (t *GitLogTool) Parameters() map[string]any {
 	return map[string]any{
 		"type": "object",
@@ -219,7 +225,9 @@ func NewGitShowTool(workspace string, restrict bool) *GitShowTool {
 }
 
 func (t *GitShowTool) Name() string        { return "git_show" }
-func (t *GitShowTool) Description() string { return "Show commit details including diff" }
+func (t *GitShowTool) Description() string {
+	return "Show commit details including diff. Set repo to target a git repo in a subdirectory, e.g. repo='projects/myapp'."
+}
 func (t *GitShowTool) Parameters() map[string]any {
 	return map[string]any{
 		"type": "object",
@@ -258,7 +266,9 @@ func NewGitBranchTool(workspace string, restrict bool) *GitBranchTool {
 }
 
 func (t *GitBranchTool) Name() string        { return "git_branch" }
-func (t *GitBranchTool) Description() string { return "List or create branches" }
+func (t *GitBranchTool) Description() string {
+	return "List or create branches. Set repo to target a git repo in a subdirectory, e.g. repo='projects/myapp'."
+}
 func (t *GitBranchTool) Parameters() map[string]any {
 	return map[string]any{
 		"type": "object",
@@ -306,7 +316,9 @@ func NewGitCommitTool(workspace string, restrict bool) *GitCommitTool {
 }
 
 func (t *GitCommitTool) Name() string        { return "git_commit" }
-func (t *GitCommitTool) Description() string { return "Create a git commit with a message" }
+func (t *GitCommitTool) Description() string {
+	return "Create a git commit with a message. Set repo to target a git repo in a subdirectory, e.g. repo='projects/myapp'."
+}
 func (t *GitCommitTool) Parameters() map[string]any {
 	return map[string]any{
 		"type":     "object",
@@ -365,7 +377,9 @@ func NewGitAddTool(workspace string, restrict bool) *GitAddTool {
 }
 
 func (t *GitAddTool) Name() string        { return "git_add" }
-func (t *GitAddTool) Description() string { return "Stage files for commit" }
+func (t *GitAddTool) Description() string {
+	return "Stage files for commit. Set repo to target a git repo in a subdirectory, e.g. repo='projects/myapp'."
+}
 func (t *GitAddTool) Parameters() map[string]any {
 	return map[string]any{
 		"type":     "object",
@@ -413,7 +427,9 @@ func NewGitResetTool(workspace string, restrict bool) *GitResetTool {
 }
 
 func (t *GitResetTool) Name() string        { return "git_reset" }
-func (t *GitResetTool) Description() string { return "Unstage files from the staging area" }
+func (t *GitResetTool) Description() string {
+	return "Unstage files from the staging area. Set repo to target a git repo in a subdirectory, e.g. repo='projects/myapp'."
+}
 func (t *GitResetTool) Parameters() map[string]any {
 	return map[string]any{
 		"type": "object",
@@ -459,7 +475,9 @@ func NewGitCheckoutTool(workspace string, restrict bool) *GitCheckoutTool {
 }
 
 func (t *GitCheckoutTool) Name() string        { return "git_checkout" }
-func (t *GitCheckoutTool) Description() string { return "Switch branches or restore working tree files" }
+func (t *GitCheckoutTool) Description() string {
+	return "Switch branches or restore working tree files. Set repo to target a git repo in a subdirectory, e.g. repo='projects/myapp'."
+}
 func (t *GitCheckoutTool) Parameters() map[string]any {
 	return map[string]any{
 		"type":     "object",
@@ -499,7 +517,9 @@ func NewGitPullTool(workspace string, restrict bool) *GitPullTool {
 }
 
 func (t *GitPullTool) Name() string        { return "git_pull" }
-func (t *GitPullTool) Description() string { return "Pull changes from a remote repository" }
+func (t *GitPullTool) Description() string {
+	return "Pull changes from a remote repository. Set repo to target a git repo in a subdirectory, e.g. repo='projects/myapp'."
+}
 func (t *GitPullTool) Parameters() map[string]any {
 	return map[string]any{
 		"type": "object",
@@ -550,7 +570,9 @@ func NewGitMergeTool(workspace string, restrict bool) *GitMergeTool {
 }
 
 func (t *GitMergeTool) Name() string        { return "git_merge" }
-func (t *GitMergeTool) Description() string { return "Merge a branch into the current branch" }
+func (t *GitMergeTool) Description() string {
+	return "Merge a branch into the current branch. Set repo to target a git repo in a subdirectory, e.g. repo='projects/myapp'."
+}
 func (t *GitMergeTool) Parameters() map[string]any {
 	return map[string]any{
 		"type":     "object",
@@ -590,7 +612,9 @@ func NewGitStashTool(workspace string, restrict bool) *GitStashTool {
 }
 
 func (t *GitStashTool) Name() string        { return "git_stash" }
-func (t *GitStashTool) Description() string { return "Stash changes in the working directory (push, pop, or list)" }
+func (t *GitStashTool) Description() string {
+	return "Stash changes in the working directory (push, pop, or list). Set repo to target a git repo in a subdirectory, e.g. repo='projects/myapp'."
+}
 func (t *GitStashTool) Parameters() map[string]any {
 	return map[string]any{
 		"type": "object",
@@ -664,7 +688,9 @@ func NewGitPushTool(workspace string, allowPush bool, restrict bool) *GitPushToo
 }
 
 func (t *GitPushTool) Name() string        { return "git_push" }
-func (t *GitPushTool) Description() string { return "Push commits to a remote repository" }
+func (t *GitPushTool) Description() string {
+	return "Push commits to a remote repository. Set repo to target a git repo in a subdirectory, e.g. repo='projects/myapp'."
+}
 func (t *GitPushTool) Parameters() map[string]any {
 	return map[string]any{
 		"type": "object",
