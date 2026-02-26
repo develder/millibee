@@ -234,6 +234,34 @@ func (m *Manager) UnregisterChannel(name string) {
 	delete(m.channels, name)
 }
 
+// StreamCallbackFor returns a streaming callback that routes chunks to the
+// named channel's SendChunk method. Returns nil if the channel does not
+// support streaming. The returned flush function should be called when
+// streaming is complete.
+func (m *Manager) StreamCallbackFor(channelName, chatID string) (func(string), func()) {
+	m.mu.RLock()
+	ch, exists := m.channels[channelName]
+	m.mu.RUnlock()
+
+	if !exists {
+		return nil, nil
+	}
+
+	streamer, ok := ch.(StreamingChannel)
+	if !ok {
+		return nil, nil
+	}
+
+	ctx := context.Background()
+	callback := func(chunk string) {
+		_ = streamer.SendChunk(ctx, chatID, chunk)
+	}
+	flush := func() {
+		_ = streamer.FlushStream(ctx, chatID)
+	}
+	return callback, flush
+}
+
 func (m *Manager) SendToChannel(ctx context.Context, channelName, chatID, content string) error {
 	m.mu.RLock()
 	channel, exists := m.channels[channelName]

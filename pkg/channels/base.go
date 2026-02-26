@@ -16,6 +16,16 @@ type Channel interface {
 	IsAllowed(senderID string) bool
 }
 
+// StreamingChannel is an optional interface that channels can implement
+// to receive streaming text chunks during LLM response generation.
+type StreamingChannel interface {
+	Channel
+	// SendChunk delivers an incremental text chunk to the channel.
+	SendChunk(ctx context.Context, chatID string, chunk string) error
+	// FlushStream signals that streaming is complete for this chatID.
+	FlushStream(ctx context.Context, chatID string) error
+}
+
 type BaseChannel struct {
 	config    any
 	bus       *bus.MessageBus

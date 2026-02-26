@@ -32,6 +32,16 @@ type TelegramChannel struct {
 	transcriber  *voice.GroqTranscriber
 	placeholders sync.Map // chatID -> messageID
 	stopThinking sync.Map // chatID -> thinkingCancel
+	streams      sync.Map // chatID -> *telegramStream
+}
+
+type telegramStream struct {
+	mu        sync.Mutex
+	buffer    strings.Builder
+	messageID int
+	chatID    int64
+	ticker    *time.Ticker
+	done      chan struct{}
 }
 
 type thinkingCancel struct {
@@ -190,6 +200,87 @@ func (c *TelegramChannel) Send(ctx context.Context, msg bus.OutboundMessage) err
 		return err
 	}
 
+	return nil
+}
+
+// SendChunk accumulates a text chunk and starts a background edit ticker
+// to progressively update the placeholder message.
+func (c *TelegramChannel) SendChunk(ctx context.Context, chatID string, chunk string) error {
+	val, loaded := c.streams.LoadOrStore(chatID, (*telegramStream)(nil))
+	if !loaded || val == nil {
+		stream := c.newStream(chatID)
+		c.streams.Store(chatID, stream)
+		val = stream
+	}
+	stream := val.(*telegramStream)
+
+	stream.mu.Lock()
+	stream.buffer.WriteString(chunk)
+	stream.mu.Unlock()
+
+	return nil
+}
+
+func (c *TelegramChannel) newStream(chatIDStr string) *telegramStream {
+	chatID, _ := parseChatID(chatIDStr)
+
+	var msgID int
+	if pID, ok := c.placeholders.Load(chatIDStr); ok {
+		msgID = pID.(int)
+	}
+
+	stream := &telegramStream{
+		messageID: msgID,
+		chatID:    chatID,
+		done:      make(chan struct{}),
+	}
+
+	stream.ticker = time.NewTicker(500 * time.Millisecond)
+	go c.streamEditLoop(stream)
+
+	return stream
+}
+
+func (c *TelegramChannel) streamEditLoop(stream *telegramStream) {
+	var lastContent string
+	for {
+		select {
+		case <-stream.ticker.C:
+			stream.mu.Lock()
+			content := stream.buffer.String()
+			stream.mu.Unlock()
+
+			if content == "" || content == lastContent || stream.messageID == 0 {
+				continue
+			}
+			lastContent = content
+
+			displayContent := content + " ▌"
+			htmlContent := markdownToTelegramHTML(displayContent)
+			editMsg := tu.EditMessageText(tu.ID(stream.chatID), stream.messageID, htmlContent)
+			editMsg.ParseMode = telego.ModeHTML
+
+			if _, err := c.bot.EditMessageText(context.Background(), editMsg); err != nil {
+				logger.DebugCF("telegram", "Stream edit skipped", map[string]any{
+					"error": err.Error(),
+				})
+			}
+
+		case <-stream.done:
+			stream.ticker.Stop()
+			return
+		}
+	}
+}
+
+// FlushStream stops the background edit ticker for this chatID.
+func (c *TelegramChannel) FlushStream(ctx context.Context, chatID string) error {
+	val, ok := c.streams.LoadAndDelete(chatID)
+	if !ok || val == nil {
+		return nil
+	}
+	stream := val.(*telegramStream)
+	close(stream.done)
 	return nil
 }
 

@@ -31,11 +31,12 @@ import (
 // that serves a Bubble Tea TUI to each connecting client.
 type SSHChannel struct {
 	*BaseChannel
-	sshConfig  config.SSHConfig
-	server     *ssh.Server
-	listener   net.Listener
-	sessions   map[string]chan string // chatID -> outbound channel
-	sessionsMu sync.RWMutex
+	sshConfig   config.SSHConfig
+	server      *ssh.Server
+	listener    net.Listener
+	sessions    map[string]chan string // chatID -> outbound channel
+	streamChans map[string]chan string // chatID -> streaming chunk channel
+	sessionsMu  sync.RWMutex
 }
 
 // NewSSHChannel creates a new SSH channel.
@@ -46,6 +47,7 @@ func NewSSHChannel(cfg config.SSHConfig, msgBus *bus.MessageBus) (*SSHChannel, e
 		BaseChannel: base,
 		sshConfig:   cfg,
 		sessions:    make(map[string]chan string),
+		streamChans: make(map[string]chan string),
 	}
 
 	return ch, nil
@@ -143,6 +145,46 @@ func (c *SSHChannel) Send(ctx context.Context, msg bus.OutboundMessage) error {
 	}
 }
 
+// SendChunk delivers a streaming text chunk to the SSH session.
+func (c *SSHChannel) SendChunk(ctx context.Context, chatID string, chunk string) error {
+	c.sessionsMu.RLock()
+	ch, ok := c.streamChans[chatID]
+	c.sessionsMu.RUnlock()
+
+	if !ok {
+		return nil
+	}
+
+	select {
+	case ch <- chunk:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil // non-blocking, drop chunk if buffer full
+	}
+}
+
+// FlushStream signals end-of-stream by closing the chunk channel.
+func (c *SSHChannel) FlushStream(ctx context.Context, chatID string) error {
+	c.sessionsMu.Lock()
+	if ch, ok := c.streamChans[chatID]; ok {
+		close(ch)
+		delete(c.streamChans, chatID)
+	}
+	c.sessionsMu.Unlock()
+	return nil
+}
+
+// registerStreamChan creates a streaming chunk channel for a chat session.
+func (c *SSHChannel) registerStreamChan(chatID string) chan string {
+	ch := make(chan string, 256)
+	c.sessionsMu.Lock()
+	c.streamChans[chatID] = ch
+	c.sessionsMu.Unlock()
+	return ch
+}
+
 // ListenAddr returns the actual address the server is listening on.
 // Useful when started with port 0 (random port).
 func (c *SSHChannel) ListenAddr() string {
@@ -195,6 +237,12 @@ func (c *SSHChannel) teaHandler(sess ssh.Session) (tea.Model, []tea.ProgramOptio
 // sshOutboundMsg carries a response delivered via the outbound channel.
 type sshOutboundMsg struct{ content string }
 
+// sshStreamChunkMsg carries an incremental text chunk during streaming.
+type sshStreamChunkMsg struct{ chunk string }
+
+// sshStreamDoneMsg signals that streaming is complete.
+type sshStreamDoneMsg struct{}
+
 // sshSessionClosedMsg signals that the outbound channel was closed.
 type sshSessionClosedMsg struct{}
 
@@ -206,6 +254,17 @@ func listenOutbound(ch <-chan string) tea.Cmd {
 			return sshSessionClosedMsg{}
 		}
 		return sshOutboundMsg{content: content}
+	}
+}
+
+// listenStreamChunks returns a tea.Cmd that reads from the stream channel.
+func listenStreamChunks(ch <-chan string) tea.Cmd {
+	return func() tea.Msg {
+		chunk, ok := <-ch
+		if !ok {
+			return sshStreamDoneMsg{}
+		}
+		return sshStreamChunkMsg{chunk: chunk}
 	}
 }
 
@@ -225,6 +284,8 @@ type sshModel struct {
 	viewport        viewport.Model
 	spinner         spinner.Model
 	processing      bool
+	streaming       bool              // true while receiving chunks
+	streamChan      <-chan string      // chunk channel for current stream
 	width           int
 	height          int
 	ready           bool
@@ -296,12 +357,42 @@ func (m *sshModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.textarea.SetWidth(msg.Width - 4)
 		return m, nil
 
+	case sshStreamChunkMsg:
+		if len(m.messages) > 0 && m.messages[len(m.messages)-1].Role == "assistant" {
+			m.messages[len(m.messages)-1].Content += msg.chunk
+		} else {
+			m.messages = append(m.messages, tui.ChatMessage{
+				Role:    "assistant",
+				Content: msg.chunk,
+			})
+		}
+		if m.ready {
+			m.viewport.SetContent(m.renderMessages())
+			m.viewport.GotoBottom()
+		}
+		return m, listenStreamChunks(m.streamChan)
+
+	case sshStreamDoneMsg:
+		m.streaming = false
+		// Continue listening for the final outbound message
+		return m, listenOutbound(m.outChan)
+
 	case sshOutboundMsg:
 		m.processing = false
-		m.messages = append(m.messages, tui.ChatMessage{
-			Role:    "assistant",
-			Content: msg.content,
-		})
+		if m.streaming {
+			// Should not happen, but handle gracefully
+			m.streaming = false
+		}
+		// If we were streaming, replace the streamed content with the
+		// final glamour-rendered version
+		if len(m.messages) > 0 && m.messages[len(m.messages)-1].Role == "assistant" {
+			m.messages[len(m.messages)-1].Content = msg.content
+		} else {
+			m.messages = append(m.messages, tui.ChatMessage{
+				Role:    "assistant",
+				Content: msg.content,
+			})
+		}
 		if m.ready {
 			m.viewport.SetContent(m.renderMessages())
 			m.viewport.GotoBottom()
@@ -348,16 +439,21 @@ func (m *sshModel) sendMessage() (*sshModel, tea.Cmd) {
 	})
 	m.textarea.Reset()
 	m.processing = true
+	m.streaming = true
 
 	if m.ready {
 		m.viewport.SetContent(m.renderMessages())
 		m.viewport.GotoBottom()
 	}
 
+	// Register a stream channel for chunks
+	streamCh := m.channel.registerStreamChan(m.chatID)
+	m.streamChan = streamCh
+
 	// Publish to MessageBus via BaseChannel
 	m.channel.HandleMessage(m.username, m.chatID, input, nil, nil)
 
-	return m, m.spinner.Tick
+	return m, tea.Batch(m.spinner.Tick, listenStreamChunks(streamCh))
 }
 
 func (m *sshModel) renderMessages() string {

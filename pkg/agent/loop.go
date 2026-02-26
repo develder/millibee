@@ -187,9 +187,21 @@ func (al *AgentLoop) Run(ctx context.Context) error {
 				continue
 			}
 
-			response, err := al.processMessage(ctx, msg)
+			// Obtain streaming callback if the channel supports it
+			var onChunk providers.StreamCallback
+			var flushStream func()
+			if al.channelManager != nil {
+				onChunk, flushStream = al.channelManager.StreamCallbackFor(msg.Channel, msg.ChatID)
+			}
+
+			response, err := al.processMessage(ctx, msg, onChunk)
 			if err != nil {
 				response = fmt.Sprintf("Error processing message: %v", err)
+			}
+
+			// Flush streaming buffer before sending final message
+			if flushStream != nil {
+				flushStream()
 			}
 
 			if response != "" {

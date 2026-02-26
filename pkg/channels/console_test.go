@@ -117,6 +117,66 @@ func TestConsoleChannel_IsAllowed(t *testing.T) {
 	assert.True(t, ch.IsAllowed("anyone"))
 }
 
+func TestConsoleChannel_StreamingInterface(t *testing.T) {
+	var buf bytes.Buffer
+	msgBus := bus.NewMessageBus()
+	defer msgBus.Close()
+
+	ch := &ConsoleChannel{
+		BaseChannel: NewBaseChannel("console", config.ConsoleConfig{Enabled: true}, msgBus, nil),
+		reader:      strings.NewReader(""),
+		writer:      &buf,
+	}
+	ch.setRunning(true)
+
+	// Verify ConsoleChannel implements StreamingChannel
+	var _ StreamingChannel = ch
+
+	ctx := context.Background()
+
+	// Stream chunks
+	assert.NoError(t, ch.SendChunk(ctx, "console", "Hello"))
+	assert.NoError(t, ch.SendChunk(ctx, "console", " world"))
+	assert.NoError(t, ch.SendChunk(ctx, "console", "!"))
+	assert.Equal(t, "Hello world!", buf.String())
+
+	// Flush adds newline
+	assert.NoError(t, ch.FlushStream(ctx, "console"))
+	assert.Equal(t, "Hello world!\n", buf.String())
+
+	// Send should be suppressed after streaming
+	err := ch.Send(ctx, bus.OutboundMessage{
+		Channel: "console",
+		ChatID:  "console",
+		Content: "Hello world!",
+	})
+	assert.NoError(t, err)
+	// Should NOT have printed the content again
+	assert.Equal(t, "Hello world!\n", buf.String())
+}
+
+func TestConsoleChannel_SendWithoutStreaming(t *testing.T) {
+	var buf bytes.Buffer
+	msgBus := bus.NewMessageBus()
+	defer msgBus.Close()
+
+	ch := &ConsoleChannel{
+		BaseChannel: NewBaseChannel("console", config.ConsoleConfig{Enabled: true}, msgBus, nil),
+		reader:      strings.NewReader(""),
+		writer:      &buf,
+	}
+	ch.setRunning(true)
+
+	// Send without prior streaming should print normally
+	err := ch.Send(context.Background(), bus.OutboundMessage{
+		Channel: "console",
+		ChatID:  "console",
+		Content: "Normal message",
+	})
+	assert.NoError(t, err)
+	assert.Contains(t, buf.String(), "Normal message")
+}
+
 func newTestConsole(t *testing.T) *ConsoleChannel {
 	t.Helper()
 	msgBus := bus.NewMessageBus()

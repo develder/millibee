@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/develder/millibee/pkg/bus"
 	"github.com/develder/millibee/pkg/config"
@@ -18,9 +19,10 @@ import (
 // in outbound message dispatch.
 type ConsoleChannel struct {
 	*BaseChannel
-	reader io.Reader
-	writer io.Writer
-	cancel context.CancelFunc
+	reader   io.Reader
+	writer   io.Writer
+	cancel   context.CancelFunc
+	streamed sync.Map // chatID -> bool, tracks active streams
 }
 
 // NewConsoleChannel creates a console channel that reads from stdin and writes to stdout.
@@ -82,11 +84,36 @@ func (c *ConsoleChannel) Stop(ctx context.Context) error {
 }
 
 // Send writes the agent's response to the writer (stdout by default).
+// If streaming was active for this chatID, the content was already printed
+// via SendChunk, so we skip the duplicate output.
 func (c *ConsoleChannel) Send(ctx context.Context, msg bus.OutboundMessage) error {
 	if !c.IsRunning() {
 		return fmt.Errorf("console channel not running")
 	}
 
+	if _, wasStreaming := c.streamed.LoadAndDelete(msg.ChatID); wasStreaming {
+		return nil
+	}
+
 	fmt.Fprintf(c.writer, "\n%s\n\n", msg.Content)
+	return nil
+}
+
+// SendChunk writes a text chunk to the writer immediately.
+func (c *ConsoleChannel) SendChunk(ctx context.Context, chatID string, chunk string) error {
+	if !c.IsRunning() {
+		return nil
+	}
+	c.streamed.Store(chatID, true)
+	fmt.Fprint(c.writer, chunk)
+	return nil
+}
+
+// FlushStream finalizes console streaming output with a newline.
+func (c *ConsoleChannel) FlushStream(ctx context.Context, chatID string) error {
+	if !c.IsRunning() {
+		return nil
+	}
+	fmt.Fprintln(c.writer)
 	return nil
 }

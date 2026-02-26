@@ -467,6 +467,130 @@ func TestListenOutbound_ClosedChannel(t *testing.T) {
 	}
 }
 
+// ── Streaming tests ──────────────────────────────────────────
+
+func TestSSHChannel_StreamingInterface(t *testing.T) {
+	cfg := config.SSHConfig{Enabled: true, Address: "127.0.0.1:0"}
+	msgBus := bus.NewMessageBus()
+	ch, err := NewSSHChannel(cfg, msgBus)
+	if err != nil {
+		t.Fatalf("NewSSHChannel: %v", err)
+	}
+
+	// Verify SSHChannel implements StreamingChannel
+	var _ StreamingChannel = ch
+}
+
+func TestSSHChannel_SendChunk_DeliveredToStreamChan(t *testing.T) {
+	cfg := config.SSHConfig{Enabled: true, Address: "127.0.0.1:0"}
+	msgBus := bus.NewMessageBus()
+	ch, _ := NewSSHChannel(cfg, msgBus)
+
+	chatID := "ssh:alice"
+	streamCh := ch.registerStreamChan(chatID)
+
+	ctx := context.Background()
+	err := ch.SendChunk(ctx, chatID, "Hello")
+	if err != nil {
+		t.Fatalf("SendChunk error: %v", err)
+	}
+
+	select {
+	case chunk := <-streamCh:
+		if chunk != "Hello" {
+			t.Errorf("chunk = %q, want 'Hello'", chunk)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for chunk")
+	}
+}
+
+func TestSSHChannel_FlushStream_ClosesChannel(t *testing.T) {
+	cfg := config.SSHConfig{Enabled: true, Address: "127.0.0.1:0"}
+	msgBus := bus.NewMessageBus()
+	ch, _ := NewSSHChannel(cfg, msgBus)
+
+	chatID := "ssh:bob"
+	streamCh := ch.registerStreamChan(chatID)
+
+	_ = ch.FlushStream(context.Background(), chatID)
+
+	// Channel should be closed
+	_, ok := <-streamCh
+	if ok {
+		t.Error("stream channel should be closed after FlushStream")
+	}
+}
+
+func TestSSHChannel_SendChunk_NoSession(t *testing.T) {
+	cfg := config.SSHConfig{Enabled: true, Address: "127.0.0.1:0"}
+	msgBus := bus.NewMessageBus()
+	ch, _ := NewSSHChannel(cfg, msgBus)
+
+	// SendChunk to non-existent session should not error
+	err := ch.SendChunk(context.Background(), "ssh:nobody", "data")
+	if err != nil {
+		t.Errorf("SendChunk to non-existent session should not error, got: %v", err)
+	}
+}
+
+func TestListenStreamChunks(t *testing.T) {
+	ch := make(chan string, 1)
+	ch <- "chunk1"
+
+	cmd := listenStreamChunks(ch)
+	msg := cmd()
+	chunkMsg, ok := msg.(sshStreamChunkMsg)
+	if !ok {
+		t.Fatalf("expected sshStreamChunkMsg, got %T", msg)
+	}
+	if chunkMsg.chunk != "chunk1" {
+		t.Errorf("chunk = %q, want 'chunk1'", chunkMsg.chunk)
+	}
+}
+
+func TestListenStreamChunks_ClosedChannel(t *testing.T) {
+	ch := make(chan string)
+	close(ch)
+
+	cmd := listenStreamChunks(ch)
+	msg := cmd()
+	if _, ok := msg.(sshStreamDoneMsg); !ok {
+		t.Fatalf("expected sshStreamDoneMsg, got %T", msg)
+	}
+}
+
+func TestSSHModel_StreamChunk_AppendsToAssistantMessage(t *testing.T) {
+	m := newTestSSHModel(t)
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = updated.(*sshModel)
+
+	// Create a stream channel for the model
+	streamCh := make(chan string, 64)
+	m.streamChan = streamCh
+	m.streaming = true
+	m.processing = true
+
+	// First chunk creates a new assistant message
+	updated, _ = m.Update(sshStreamChunkMsg{chunk: "Hello"})
+	m = updated.(*sshModel)
+
+	if len(m.messages) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(m.messages))
+	}
+	if m.messages[0].Content != "Hello" {
+		t.Errorf("content = %q, want 'Hello'", m.messages[0].Content)
+	}
+
+	// Second chunk appends
+	updated, _ = m.Update(sshStreamChunkMsg{chunk: " world"})
+	m = updated.(*sshModel)
+
+	if m.messages[0].Content != "Hello world" {
+		t.Errorf("content = %q, want 'Hello world'", m.messages[0].Content)
+	}
+}
+
 // Helper to get a free port for testing
 func getFreePort() (int, error) {
 	l, err := net.Listen("tcp", "127.0.0.1:0")
