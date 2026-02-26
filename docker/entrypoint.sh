@@ -1,7 +1,7 @@
 #!/bin/sh
 # Entrypoint for millibee Docker container.
-# Syncs built-in skills to the workspace volume on first run,
-# so volume mounts don't hide embedded skills.
+# Syncs built-in skills to the workspace on first run,
+# so bind mounts don't hide embedded skills.
 
 WORKSPACE="$HOME/.millibee/workspace"
 SKILLS_SRC="$HOME/.millibee/_builtin_skills"
@@ -25,7 +25,7 @@ if [ -d "$SKILLS_SRC" ]; then
     done
 fi
 
-# Ensure memory directory exists (for bind mount)
+# Ensure memory directory exists
 mkdir -p "$WORKSPACE/memory"
 
 exec millibee "$@"

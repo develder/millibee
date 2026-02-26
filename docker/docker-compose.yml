@@ -17,9 +17,7 @@ services:
       - millibee-net
     volumes:
       - ../config/config.json:/home/millibee/.millibee/config.json:ro
-      - millibee-workspace:/home/millibee/.millibee/workspace
-      # Memory vault: bind mount so it's accessible outside the container
-      - ${MEMORY_VAULT_PATH:-../data/memory}:/home/millibee/.millibee/workspace/memory
+      - ${WORKSPACE_PATH:-../data/workspace}:/home/millibee/.millibee/workspace
     environment:
       - CRAWL4AI_BASE_URL=http://crawl4ai:11235
       - YT_TRANSCRIPT_URL=http://yt-transcript:8000
@@ -47,9 +45,7 @@ services:
       - millibee-net
     volumes:
       - ../config/config.json:/home/millibee/.millibee/config.json:ro
-      - millibee-workspace:/home/millibee/.millibee/workspace
-      # Memory vault: bind mount so it's accessible outside the container
-      - ${MEMORY_VAULT_PATH:-../data/memory}:/home/millibee/.millibee/workspace/memory
+      - ${WORKSPACE_PATH:-../data/workspace}:/home/millibee/.millibee/workspace
     ports:
       - "${SSH_HOST_PORT:-2222}:2222"
     environment:
@@ -129,6 +125,5 @@ networks:
     driver: bridge
 
 volumes:
-  millibee-workspace:
   crawl4ai-data:
   whisper-cache:

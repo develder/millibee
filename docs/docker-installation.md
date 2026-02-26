@@ -28,8 +28,7 @@ Run MilliBee and its companion services (web scraping, video transcription) usin
     │  Volumes   │
     │            │
     │ config.json│ (bind mount, read-only)
-    │ memory/    │ (bind mount, host-accessible)
-    │ workspace/ │ (named volume)
+    │ workspace/ │ (bind mount, host-accessible)
     └────────────┘
 ```
 
@@ -44,7 +43,7 @@ Run MilliBee and its companion services (web scraping, video transcription) usin
 ### 1. Clone and enter the repository
 
 ```bash
-git clone https://github.com/helio1973/millibee.git
+git clone https://github.com/develder/millibee.git
 cd millibee
 ```
 
@@ -76,7 +75,7 @@ This registers the `deep_scrape`, `youtube_transcript`, and `transcribe_audio` n
 cp docker/.env.example docker/.env
 ```
 
-Only needed if you want to change default ports, Whisper model size, or memory vault path. See [Environment Variables](#environment-variables) below.
+Only needed if you want to change default ports, Whisper model size, or workspace path. See [Environment Variables](#environment-variables) below.
 
 ### 4. Start the services
 
@@ -171,7 +170,8 @@ All variables are optional. Defaults are shown below.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MEMORY_VAULT_PATH` | `./data/memory` | Host path for the memory vault bind mount |
+| `WORKSPACE_PATH` | `./data/workspace` | Host path for the workspace bind mount |
+| `SSH_HOST_PORT` | `2222` | SSH TUI port on the host |
 | `CRAWL4AI_HOST_PORT` | `11235` | Crawl4AI port on the host |
 | `CRAWL4AI_MAX_CONCURRENT` | `5` | Max concurrent crawl tasks |
 | `CRAWL4AI_API_TOKEN` | _(empty)_ | Optional API token for Crawl4AI auth |
@@ -195,13 +195,21 @@ For CPU-only setups, `base` or `small` is recommended. Use `large-v3` only with 
 
 | Volume | Mount | Purpose |
 |--------|-------|---------|
-| `millibee-workspace` | Named volume | Agent workspace (skills, files) |
+| `config/config.json` | Bind mount (read-only) | MilliBee configuration |
+| `${WORKSPACE_PATH}` | Bind mount | Workspace: memory vault, skills, projects |
 | `crawl4ai-data` | Named volume | Crawl4AI browser cache |
 | `whisper-cache` | Named volume | Downloaded Whisper models |
-| `config/config.json` | Bind mount (read-only) | MilliBee configuration |
-| `${MEMORY_VAULT_PATH}` | Bind mount | Memory vault (accessible from host) |
 
-The memory vault is bind-mounted so its contents are directly accessible from the host filesystem at the configured path (default: `./data/memory`).
+The entire workspace is bind-mounted to the host (default: `./data/workspace`). This means all workspace contents — memory vault, skills, and any project files — are directly accessible from the host filesystem. You can edit skills in your IDE, back up the workspace with standard tools, and inspect memory vault contents without `docker exec`.
+
+The workspace directory structure:
+
+```
+data/workspace/
+├── memory/       # Memory vault (persistent notes)
+├── skills/       # Installed skills
+└── ...           # Any other agent-created files
+```
 
 ## Networking
 
@@ -244,7 +252,7 @@ docker compose -f docker/docker-compose.yml --profile gateway down
 docker compose -f docker/docker-compose.yml --profile gateway down -v
 ```
 
-> **Warning:** This deletes all named volumes including the workspace, Whisper model cache, and Crawl4AI data. The memory vault (bind mount) is not affected.
+> **Warning:** This deletes all named volumes (Whisper model cache, Crawl4AI data). The workspace bind mount on the host is not affected.
 
 ### Update companion service images
 
@@ -293,10 +301,9 @@ The entrypoint script syncs skills on startup. Check the logs:
 docker compose -f docker/docker-compose.yml logs millibee-gateway | grep "Installed built-in skill"
 ```
 
-If skills are still missing, remove the workspace volume and restart:
+If skills are still missing, remove the skills directory from the workspace and restart:
 
 ```bash
-docker compose -f docker/docker-compose.yml --profile gateway down
-docker volume rm millibee_millibee-workspace
-docker compose -f docker/docker-compose.yml --profile gateway up -d
+rm -rf data/workspace/skills
+docker compose -f docker/docker-compose.yml --profile gateway restart millibee-gateway
 ```
