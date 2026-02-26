@@ -25,6 +25,20 @@ if [ -d "$SKILLS_SRC" ]; then
     done
 fi
 
+# Sync bootstrap files (SOUL.md, USER.md, etc.) into workspace.
+# Only copy if the file does not already exist (user customizations win).
+BOOTSTRAP_SRC="$HOME/.millibee/_builtin_bootstrap"
+if [ -d "$BOOTSTRAP_SRC" ]; then
+    for f in "$BOOTSTRAP_SRC"/*.md; do
+        [ -f "$f" ] || continue
+        fname="$(basename "$f")"
+        if [ ! -f "$WORKSPACE/$fname" ]; then
+            cp "$f" "$WORKSPACE/$fname"
+            echo "Installed bootstrap file: $fname"
+        fi
+    done
+fi
+
 # Ensure memory directory exists
 mkdir -p "$WORKSPACE/memory"
 

@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/develder/millibee/pkg/providers"
@@ -154,4 +156,50 @@ func TestSanitizeToolAfterAssistantWithoutToolCalls(t *testing.T) {
 	assert.Len(t, result, 2)
 	assert.Equal(t, "user", result[0].Role)
 	assert.Equal(t, "assistant", result[1].Role)
+}
+
+// --- Bootstrap file tests ---
+
+func TestLoadBootstrapFiles_LoadsSOUL(t *testing.T) {
+	workspace := t.TempDir()
+	os.WriteFile(filepath.Join(workspace, "SOUL.md"), []byte("I am MilliBee"), 0o644)
+
+	cb := &ContextBuilder{workspace: workspace}
+	result := cb.LoadBootstrapFiles()
+
+	assert.Contains(t, result, "SOUL.md")
+	assert.Contains(t, result, "I am MilliBee")
+}
+
+func TestLoadBootstrapFiles_LoadsMultiple(t *testing.T) {
+	workspace := t.TempDir()
+	os.WriteFile(filepath.Join(workspace, "SOUL.md"), []byte("soul content"), 0o644)
+	os.WriteFile(filepath.Join(workspace, "USER.md"), []byte("user prefs"), 0o644)
+
+	cb := &ContextBuilder{workspace: workspace}
+	result := cb.LoadBootstrapFiles()
+
+	assert.Contains(t, result, "soul content")
+	assert.Contains(t, result, "user prefs")
+}
+
+func TestLoadBootstrapFiles_EmptyWorkspace(t *testing.T) {
+	workspace := t.TempDir()
+
+	cb := &ContextBuilder{workspace: workspace}
+	result := cb.LoadBootstrapFiles()
+
+	assert.Empty(t, result)
+}
+
+func TestLoadBootstrapFiles_IgnoresNonBootstrapFiles(t *testing.T) {
+	workspace := t.TempDir()
+	os.WriteFile(filepath.Join(workspace, "SOUL.md"), []byte("soul"), 0o644)
+	os.WriteFile(filepath.Join(workspace, "RANDOM.md"), []byte("should not appear"), 0o644)
+
+	cb := &ContextBuilder{workspace: workspace}
+	result := cb.LoadBootstrapFiles()
+
+	assert.Contains(t, result, "soul")
+	assert.NotContains(t, result, "should not appear")
 }

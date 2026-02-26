@@ -45,9 +45,14 @@ USER millibee
 # Run onboard to create initial directories, config, and skills
 RUN /usr/local/bin/millibee onboard
 
-# Preserve built-in skills separately so they survive volume mounts.
+# Preserve built-in files separately so they survive volume mounts.
 # The entrypoint script syncs these into the workspace on startup.
-RUN cp -r /home/millibee/.millibee/workspace/skills /home/millibee/.millibee/_builtin_skills
+RUN cp -r /home/millibee/.millibee/workspace/skills /home/millibee/.millibee/_builtin_skills && \
+    mkdir -p /home/millibee/.millibee/_builtin_bootstrap && \
+    for f in SOUL.md USER.md IDENTITY.md AGENTS.md; do \
+        [ -f /home/millibee/.millibee/workspace/$f ] && \
+        cp /home/millibee/.millibee/workspace/$f /home/millibee/.millibee/_builtin_bootstrap/$f; \
+    done; true
 
 WORKDIR /home/millibee
 
