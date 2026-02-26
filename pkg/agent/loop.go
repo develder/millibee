@@ -899,8 +899,12 @@ func (al *AgentLoop) forceCompression(agent *AgentInstance, sessionKey string) {
 		return
 	}
 
-	// Helper to find the mid-point of the conversation
+	// Find a clean cut point near the midpoint.
+	// Avoid splitting inside a tool-call sequence (assistant → tool results).
 	mid := len(conversation) / 2
+	for mid < len(conversation)-1 && conversation[mid].Role == "tool" {
+		mid++
+	}
 
 	// New history structure:
 	// 1. System Prompt (with compression note appended)

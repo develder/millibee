@@ -232,9 +232,23 @@ func sanitizeHistoryForProvider(history []providers.Message) []providers.Message
 				logger.DebugCF("agent", "Dropping orphaned leading tool message", map[string]any{})
 				continue
 			}
-			last := sanitized[len(sanitized)-1]
-			if last.Role != "assistant" || len(last.ToolCalls) == 0 {
-				logger.DebugCF("agent", "Dropping orphaned tool message", map[string]any{})
+			// Look backwards for the parent assistant with tool_calls.
+			// Multiple tool results follow a single assistant message,
+			// so we must scan past earlier tool results to find it.
+			hasParent := false
+			for i := len(sanitized) - 1; i >= 0; i-- {
+				if sanitized[i].Role == "assistant" && len(sanitized[i].ToolCalls) > 0 {
+					hasParent = true
+					break
+				}
+				if sanitized[i].Role != "tool" {
+					break // stop at non-tool boundary
+				}
+			}
+			if !hasParent {
+				logger.DebugCF("agent", "Dropping orphaned tool message", map[string]any{
+					"tool_call_id": msg.ToolCallID,
+				})
 				continue
 			}
 			sanitized = append(sanitized, msg)
@@ -259,6 +273,18 @@ func sanitizeHistoryForProvider(history []providers.Message) []providers.Message
 
 		default:
 			sanitized = append(sanitized, msg)
+		}
+	}
+
+	// Drop trailing assistant with tool_calls whose results were truncated.
+	// APIs like MiniMax require every tool_call to have a matching result.
+	if len(sanitized) > 0 {
+		last := sanitized[len(sanitized)-1]
+		if last.Role == "assistant" && len(last.ToolCalls) > 0 {
+			logger.DebugCF("agent", "Dropping trailing assistant with tool_calls (missing results)", map[string]any{
+				"tool_call_count": len(last.ToolCalls),
+			})
+			sanitized = sanitized[:len(sanitized)-1]
 		}
 	}
 
