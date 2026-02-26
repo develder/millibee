@@ -276,6 +276,59 @@ func TestShellTool_RestrictToWorkspace(t *testing.T) {
 	}
 }
 
+// TestShellTool_RestrictToWorkspace_AllowsSafeSystemPaths verifies that
+// read-only system paths like /usr, /etc, /tmp are not blocked.
+func TestShellTool_RestrictToWorkspace_AllowsSafeSystemPaths(t *testing.T) {
+	workspace := t.TempDir()
+	tool := NewExecTool(workspace, true)
+
+	safeCmds := []string{
+		"cat /etc/os-release",
+		"ls /usr/local/bin",
+		"ls /tmp",
+		"echo /dev/null",
+		"ls /opt",
+	}
+
+	for _, cmd := range safeCmds {
+		result := tool.Execute(context.Background(), map[string]any{"command": cmd})
+		if result.IsError && strings.Contains(result.ForLLM, "path outside working dir") {
+			t.Errorf("safe system path should NOT be blocked: %s (got: %s)", cmd, result.ForLLM)
+		}
+	}
+}
+
+// TestShellTool_RestrictToWorkspace_BlocksUnsafePaths verifies that
+// arbitrary paths outside workspace are still blocked.
+func TestShellTool_RestrictToWorkspace_BlocksUnsafePaths(t *testing.T) {
+	workspace := t.TempDir()
+	tool := NewExecTool(workspace, true)
+
+	// Use a path that's outside the workspace but not in the safe list.
+	// The guard checks the command string, not actual file existence.
+	unsafePath := filepath.Join(filepath.Dir(workspace), "secrets", "passwords.txt")
+	result := tool.guardCommand("cat "+unsafePath, workspace)
+	assert.Contains(t, result, "blocked", "path outside workspace and safe list should be blocked")
+}
+
+// TestShellTool_RestrictToWorkspace_AllowsSubdirPaths verifies that
+// absolute paths within the workspace tree are allowed.
+func TestShellTool_RestrictToWorkspace_AllowsSubdirPaths(t *testing.T) {
+	workspace := t.TempDir()
+	subdir := filepath.Join(workspace, "projects", "myapp")
+	os.MkdirAll(subdir, 0o755)
+	os.WriteFile(filepath.Join(subdir, "main.go"), []byte("package main"), 0o644)
+
+	tool := NewExecTool(workspace, true)
+
+	result := tool.Execute(context.Background(), map[string]any{
+		"command": "cat " + filepath.Join(subdir, "main.go"),
+	})
+	if result.IsError && strings.Contains(result.ForLLM, "path outside working dir") {
+		t.Errorf("path within workspace should be allowed: %s", result.ForLLM)
+	}
+}
+
 // --- Allowlist and Command Length Tests ---
 
 func TestShellTool_MaxCommandLength_Blocks(t *testing.T) {

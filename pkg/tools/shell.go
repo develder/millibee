@@ -278,6 +278,22 @@ func (t *ExecTool) Execute(ctx context.Context, args map[string]any) *ToolResult
 	}
 }
 
+// isReadOnlySafePath returns true for well-known system paths that are
+// safe to read and should not be blocked by the workspace restriction.
+func isReadOnlySafePath(path string) bool {
+	safeDirs := []string{
+		"/usr", "/bin", "/sbin", "/lib", "/etc",
+		"/proc", "/sys", "/dev", "/tmp", "/opt",
+	}
+	lower := strings.ToLower(path)
+	for _, dir := range safeDirs {
+		if lower == dir || strings.HasPrefix(lower, dir+"/") {
+			return true
+		}
+	}
+	return false
+}
+
 func (t *ExecTool) guardCommand(command, cwd string) string {
 	cmd := strings.TrimSpace(command)
 
@@ -311,23 +327,30 @@ func (t *ExecTool) guardCommand(command, cwd string) string {
 			return "Command blocked by safety guard (path traversal detected)"
 		}
 
-		cwdPath, err := filepath.Abs(cwd)
+		// Use the workspace root (not cwd) as the containment boundary
+		wsPath, err := filepath.Abs(t.workingDir)
 		if err != nil {
 			return ""
 		}
 
-		pathPattern := regexp.MustCompile(`[A-Za-z]:\\[^\\\"']+|/[^\s\"']+`)
+		pathPattern := regexp.MustCompile(`[A-Za-z]:[\\\/][^\s\"']+|/[^\s\"']+`)
 		matches := pathPattern.FindAllString(cmd, -1)
 
 		for _, raw := range matches {
+			// Skip safe well-known paths that are read-only system locations
+			if isReadOnlySafePath(raw) {
+				continue
+			}
+
 			p, err := filepath.Abs(raw)
 			if err != nil {
 				continue
 			}
 
-			rel, err := filepath.Rel(cwdPath, p)
+			rel, err := filepath.Rel(wsPath, p)
 			if err != nil {
-				continue
+				// On Windows, cross-drive paths can't be made relative — treat as outside
+				return "Command blocked by safety guard (path outside working dir)"
 			}
 
 			if strings.HasPrefix(rel, "..") {
