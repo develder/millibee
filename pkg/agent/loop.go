@@ -463,6 +463,17 @@ func (al *AgentLoop) runAgentLoop(ctx context.Context, agent *AgentInstance, opt
 		history = agent.Sessions.GetHistory(opts.SessionKey)
 		summary = agent.Sessions.GetSummary(opts.SessionKey)
 	}
+	// Apply prompt optimization if enabled
+	if agent.Optimizer != nil && agent.Optimizer.IsEnabled() {
+		result := agent.Optimizer.Optimize(opts.UserMessage)
+		if result.WasChanged {
+			opts.UserMessage = result.Optimized
+			logger.InfoCF("agent", "Prompt optimized", map[string]any{
+				"saved_chars": result.Saved,
+			})
+		}
+	}
+
 	messages := agent.ContextBuilder.BuildMessages(
 		history,
 		summary,
@@ -1220,15 +1231,41 @@ func (al *AgentLoop) handleCommand(ctx context.Context, agent *AgentInstance, se
 		if summary != "" {
 			summaryInfo = fmt.Sprintf("%d chars", len(summary))
 		}
+		optimizeStatus := "off"
+		if agent.Optimizer != nil && agent.Optimizer.IsEnabled() {
+			optimizeStatus = "on"
+		}
 		return fmt.Sprintf(
-			"Session: %s\nModel: %s\nMessages: %d\nTokens (est): %d / %d\nSummary: %s",
+			"Session: %s\nModel: %s\nMessages: %d\nTokens (est): %d / %d\nSummary: %s\nOptimize: %s",
 			sessionKey, agent.Model,
 			len(history), tokens, agent.ContextWindow,
-			summaryInfo,
+			summaryInfo, optimizeStatus,
 		), true
 
 	case "/help":
 		return tui.FormatHelp(), true
+
+	case "/optimize":
+		if agent.Optimizer == nil {
+			return "Optimizer not available", true
+		}
+		if len(args) < 1 {
+			status := "off"
+			if agent.Optimizer.IsEnabled() {
+				status = "on"
+			}
+			return fmt.Sprintf("Prompt optimization: %s\nUsage: /optimize [on|off]", status), true
+		}
+		switch args[0] {
+		case "on":
+			agent.Optimizer.SetEnabled(true)
+			return "Prompt optimization enabled", true
+		case "off":
+			agent.Optimizer.SetEnabled(false)
+			return "Prompt optimization disabled", true
+		default:
+			return fmt.Sprintf("Unknown value: %s. Use on or off.", args[0]), true
+		}
 
 	case "/switch":
 		if len(args) < 3 || args[1] != "to" {

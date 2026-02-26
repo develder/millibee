@@ -295,7 +295,7 @@ type sshModel struct {
 
 func newSSHModel(ch *SSHChannel, username, chatID string, styles tui.Styles, outChan chan string, renderer *lipgloss.Renderer) *sshModel {
 	ta := textarea.New()
-	ta.Placeholder = "Type your message... (Enter to send, Ctrl+C to quit)"
+	ta.Placeholder = "Ask something or give a command... (Enter to send, Ctrl+C to quit)"
 	ta.Focus()
 	ta.CharLimit = 4096
 	ta.SetHeight(3)

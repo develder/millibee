@@ -519,7 +519,7 @@ func TestHelpCommand(t *testing.T) {
 	}
 
 	// Should contain all command names
-	for _, cmd := range []string{"/clear", "/status", "/help", "/show", "/list", "/switch"} {
+	for _, cmd := range []string{"/clear", "/status", "/help", "/show", "/list", "/switch", "/optimize"} {
 		if !strings.Contains(response, cmd) {
 			t.Errorf("expected /help to mention %s", cmd)
 		}
@@ -594,6 +594,102 @@ func TestStatusCommandNoSummary(t *testing.T) {
 
 	if !strings.Contains(response, "Summary: none") {
 		t.Errorf("expected 'Summary: none', got: %s", response)
+	}
+}
+
+// TestOptimizeCommand verifies /optimize toggles prompt optimization
+func TestOptimizeCommand(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := &config.Config{
+		Agents: config.AgentsConfig{
+			Defaults: config.AgentDefaults{
+				Workspace:         tmpDir,
+				Model:             "test-model",
+				MaxTokens:         4096,
+				MaxToolIterations: 10,
+			},
+		},
+	}
+
+	al := NewAgentLoop(cfg, bus.NewMessageBus(), &simpleMockProvider{response: "OK"})
+
+	ctx := context.Background()
+
+	// Check current status (should be off by default)
+	response, err := al.processMessage(ctx, bus.InboundMessage{
+		Channel: "test", SenderID: "u1", ChatID: "c1", Content: "/optimize",
+	})
+	if err != nil {
+		t.Fatalf("processMessage failed: %v", err)
+	}
+	if !strings.Contains(response, "off") {
+		t.Errorf("expected optimize off by default, got: %s", response)
+	}
+
+	// Enable
+	response, err = al.processMessage(ctx, bus.InboundMessage{
+		Channel: "test", SenderID: "u1", ChatID: "c1", Content: "/optimize on",
+	})
+	if err != nil {
+		t.Fatalf("processMessage failed: %v", err)
+	}
+
+	// Check status again
+	response, err = al.processMessage(ctx, bus.InboundMessage{
+		Channel: "test", SenderID: "u1", ChatID: "c1", Content: "/optimize",
+	})
+	if err != nil {
+		t.Fatalf("processMessage failed: %v", err)
+	}
+	if !strings.Contains(response, "on") {
+		t.Errorf("expected optimize on, got: %s", response)
+	}
+
+	// Disable
+	response, err = al.processMessage(ctx, bus.InboundMessage{
+		Channel: "test", SenderID: "u1", ChatID: "c1", Content: "/optimize off",
+	})
+	if err != nil {
+		t.Fatalf("processMessage failed: %v", err)
+	}
+
+	// Verify disabled
+	response, err = al.processMessage(ctx, bus.InboundMessage{
+		Channel: "test", SenderID: "u1", ChatID: "c1", Content: "/optimize",
+	})
+	if err != nil {
+		t.Fatalf("processMessage failed: %v", err)
+	}
+	if !strings.Contains(response, "off") {
+		t.Errorf("expected optimize off, got: %s", response)
+	}
+}
+
+// TestStatusCommandShowsOptimize verifies /status includes optimize status
+func TestStatusCommandShowsOptimize(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := &config.Config{
+		Agents: config.AgentsConfig{
+			Defaults: config.AgentDefaults{
+				Workspace:         tmpDir,
+				Model:             "test-model",
+				MaxTokens:         4096,
+				MaxToolIterations: 10,
+			},
+		},
+	}
+
+	al := NewAgentLoop(cfg, bus.NewMessageBus(), &simpleMockProvider{response: "OK"})
+
+	ctx := context.Background()
+	response, err := al.processMessage(ctx, bus.InboundMessage{
+		Channel: "test", SenderID: "u1", ChatID: "c1", Content: "/status",
+	})
+	if err != nil {
+		t.Fatalf("processMessage failed: %v", err)
+	}
+	if !strings.Contains(response, "Optimize:") {
+		t.Errorf("expected /status to show Optimize field, got: %s", response)
 	}
 }
 

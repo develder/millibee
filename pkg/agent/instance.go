@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/develder/millibee/pkg/agent/optimizer"
 	"github.com/develder/millibee/pkg/config"
 	"github.com/develder/millibee/pkg/memory"
 	"github.com/develder/millibee/pkg/providers"
@@ -32,6 +33,7 @@ type AgentInstance struct {
 	Subagents      *config.SubagentsConfig
 	SkillsFilter   []string
 	Candidates     []providers.FallbackCandidate
+	Optimizer      *optimizer.Optimizer
 }
 
 // NewAgentInstance creates an agent instance from config.
@@ -165,6 +167,7 @@ func NewAgentInstance(
 		Subagents:      subagents,
 		SkillsFilter:   skillsFilter,
 		Candidates:     candidates,
+		Optimizer:      optimizer.New(),
 	}
 }
 

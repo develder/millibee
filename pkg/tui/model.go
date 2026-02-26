@@ -64,7 +64,7 @@ type Model struct {
 // NewModel creates a new TUI model.
 func NewModel(agent AgentProcessor, sessionKey string) Model {
 	ta := textarea.New()
-	ta.Placeholder = "Type your message... (Enter to send, Ctrl+C to quit)"
+	ta.Placeholder = "Ask something or give a command... (Enter to send, Ctrl+C to quit)"
 	ta.Focus()
 	ta.CharLimit = 4096
 	ta.SetHeight(3)
