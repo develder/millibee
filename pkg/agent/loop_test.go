@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -490,6 +491,109 @@ func TestClearCommand(t *testing.T) {
 	}
 	if agent.Sessions.GetSummary(sessionKey) != "" {
 		t.Errorf("expected empty summary after /clear")
+	}
+}
+
+// TestHelpCommand verifies /help returns command listing
+func TestHelpCommand(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := &config.Config{
+		Agents: config.AgentsConfig{
+			Defaults: config.AgentDefaults{
+				Workspace:         tmpDir,
+				Model:             "test-model",
+				MaxTokens:         4096,
+				MaxToolIterations: 10,
+			},
+		},
+	}
+
+	al := NewAgentLoop(cfg, bus.NewMessageBus(), &simpleMockProvider{response: "OK"})
+
+	ctx := context.Background()
+	response, err := al.processMessage(ctx, bus.InboundMessage{
+		Channel: "test", SenderID: "u1", ChatID: "c1", Content: "/help",
+	})
+	if err != nil {
+		t.Fatalf("processMessage failed: %v", err)
+	}
+
+	// Should contain all command names
+	for _, cmd := range []string{"/clear", "/status", "/help", "/show", "/list", "/switch"} {
+		if !strings.Contains(response, cmd) {
+			t.Errorf("expected /help to mention %s", cmd)
+		}
+	}
+}
+
+// TestStatusCommand verifies /status returns session info
+func TestStatusCommand(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := &config.Config{
+		Agents: config.AgentsConfig{
+			Defaults: config.AgentDefaults{
+				Workspace:         tmpDir,
+				Model:             "test-model",
+				MaxTokens:         4096,
+				MaxToolIterations: 10,
+			},
+		},
+	}
+
+	al := NewAgentLoop(cfg, bus.NewMessageBus(), &simpleMockProvider{response: "OK"})
+	agent := al.registry.GetDefaultAgent()
+
+	// Seed some history
+	sessionKey := "agent:main:main"
+	agent.Sessions.AddMessage(sessionKey, "user", "hello")
+	agent.Sessions.AddMessage(sessionKey, "assistant", "hi")
+	agent.Sessions.SetSummary(sessionKey, "short summary")
+
+	ctx := context.Background()
+	response, err := al.processMessage(ctx, bus.InboundMessage{
+		Channel: "test", SenderID: "u1", ChatID: "c1", Content: "/status",
+	})
+	if err != nil {
+		t.Fatalf("processMessage failed: %v", err)
+	}
+
+	if !strings.Contains(response, "Messages: 2") {
+		t.Errorf("expected message count, got: %s", response)
+	}
+	if !strings.Contains(response, "test-model") {
+		t.Errorf("expected model name, got: %s", response)
+	}
+	if !strings.Contains(response, "13 chars") {
+		t.Errorf("expected summary info, got: %s", response)
+	}
+}
+
+// TestStatusCommandNoSummary verifies /status shows "none" when no summary
+func TestStatusCommandNoSummary(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := &config.Config{
+		Agents: config.AgentsConfig{
+			Defaults: config.AgentDefaults{
+				Workspace:         tmpDir,
+				Model:             "test-model",
+				MaxTokens:         4096,
+				MaxToolIterations: 10,
+			},
+		},
+	}
+
+	al := NewAgentLoop(cfg, bus.NewMessageBus(), &simpleMockProvider{response: "OK"})
+
+	ctx := context.Background()
+	response, err := al.processMessage(ctx, bus.InboundMessage{
+		Channel: "test", SenderID: "u1", ChatID: "c1", Content: "/status",
+	})
+	if err != nil {
+		t.Fatalf("processMessage failed: %v", err)
+	}
+
+	if !strings.Contains(response, "Summary: none") {
+		t.Errorf("expected 'Summary: none', got: %s", response)
 	}
 }
 

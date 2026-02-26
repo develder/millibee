@@ -591,6 +591,112 @@ func TestSSHModel_StreamChunk_AppendsToAssistantMessage(t *testing.T) {
 	}
 }
 
+// ── Command hints and Tab completion tests ────────────────────────────
+
+func TestSSHModel_View_ShowsHintsWhenTypingSlash(t *testing.T) {
+	m := newTestSSHModel(t)
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = updated.(*sshModel)
+
+	m.textarea.SetValue("/")
+	view := m.View()
+
+	// Status bar should show available commands when typing /
+	for _, cmd := range []string{"/clear", "/status", "/help"} {
+		if !contains(view, cmd) {
+			t.Errorf("view should show %s hint when typing /, got:\n%s", cmd, view)
+		}
+	}
+}
+
+func TestSSHModel_View_ShowsFilteredHints(t *testing.T) {
+	m := newTestSSHModel(t)
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = updated.(*sshModel)
+
+	m.textarea.SetValue("/cl")
+	view := m.View()
+
+	if !contains(view, "/clear") {
+		t.Errorf("view should show /clear hint when typing /cl")
+	}
+	// /status should NOT be visible since it doesn't match /cl
+	if contains(view, "/status") {
+		t.Errorf("view should not show /status hint when typing /cl")
+	}
+}
+
+func TestSSHModel_View_NoHintsForNormalText(t *testing.T) {
+	m := newTestSSHModel(t)
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = updated.(*sshModel)
+
+	m.textarea.SetValue("hello")
+	view := m.View()
+
+	// Should show normal "Ready" status, not command hints
+	if contains(view, "/clear") {
+		t.Errorf("view should not show command hints for normal text")
+	}
+}
+
+func TestSSHModel_TabCompletion(t *testing.T) {
+	m := newTestSSHModel(t)
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = updated.(*sshModel)
+
+	m.textarea.SetValue("/cl")
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	m = updated.(*sshModel)
+
+	if m.textarea.Value() != "/clear" {
+		t.Errorf("Tab should complete /cl to /clear, got %q", m.textarea.Value())
+	}
+}
+
+func TestSSHModel_TabCompletion_AmbiguousNoChange(t *testing.T) {
+	m := newTestSSHModel(t)
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = updated.(*sshModel)
+
+	// /s matches /status, /show, /switch — ambiguous, should not change
+	m.textarea.SetValue("/s")
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	m = updated.(*sshModel)
+
+	if m.textarea.Value() != "/s" {
+		t.Errorf("Tab with ambiguous prefix should not change input, got %q", m.textarea.Value())
+	}
+}
+
+func TestSSHModel_TabCompletion_NoSlash(t *testing.T) {
+	m := newTestSSHModel(t)
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = updated.(*sshModel)
+
+	m.textarea.SetValue("hello")
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	m = updated.(*sshModel)
+
+	if m.textarea.Value() != "hello" {
+		t.Errorf("Tab on non-command should not change input, got %q", m.textarea.Value())
+	}
+}
+
+// contains checks if haystack contains needle (simple substring check for test output)
+func contains(haystack, needle string) bool {
+	return len(haystack) > 0 && len(needle) > 0 && stringContains(haystack, needle)
+}
+
+func stringContains(s, sub string) bool {
+	for i := 0; i <= len(s)-len(sub); i++ {
+		if s[i:i+len(sub)] == sub {
+			return true
+		}
+	}
+	return false
+}
+
 // Helper to get a free port for testing
 func getFreePort() (int, error) {
 	l, err := net.Listen("tcp", "127.0.0.1:0")

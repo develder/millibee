@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -102,6 +103,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC:
 			return m, tea.Quit
+		case tea.KeyTab:
+			if !m.processing {
+				m.completeCommand()
+				return m, nil
+			}
 		case tea.KeyEnter:
 			if !m.processing {
 				return m.sendMessage()
@@ -289,6 +295,8 @@ func (m Model) View() string {
 	var status string
 	if m.processing {
 		status = StatusStyle.Render(m.spinner.View() + " Thinking...")
+	} else if hint := m.commandHint(); hint != "" {
+		status = StatusStyle.Render(hint)
 	} else {
 		status = StatusStyle.Render("Ready | Ctrl+C to quit")
 	}
@@ -299,4 +307,33 @@ func (m Model) View() string {
 		status,
 		m.textarea.View(),
 	)
+}
+
+// commandHint returns a status bar hint when the textarea starts with /.
+func (m Model) commandHint() string {
+	input := strings.TrimSpace(m.textarea.Value())
+	if input == "" || input[0] != '/' {
+		return ""
+	}
+	matches := MatchCommands(input)
+	if len(matches) == 0 {
+		return ""
+	}
+	names := make([]string, len(matches))
+	for i, c := range matches {
+		names[i] = c.Name
+	}
+	return "Commands: " + strings.Join(names, "  ")
+}
+
+// completeCommand auto-completes the command in textarea when there is exactly one match.
+func (m *Model) completeCommand() {
+	input := strings.TrimSpace(m.textarea.Value())
+	if input == "" || input[0] != '/' {
+		return
+	}
+	matches := MatchCommands(input)
+	if len(matches) == 1 {
+		m.textarea.SetValue(matches[0].Name)
+	}
 }

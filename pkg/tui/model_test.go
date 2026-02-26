@@ -143,6 +143,66 @@ func TestStreamDoneMsg(t *testing.T) {
 	assert.Nil(t, model.streamChan, "stream channel should be nil")
 }
 
+func TestModel_View_ShowsHintsWhenTypingSlash(t *testing.T) {
+	m := NewModel(nil, "test:default")
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = updated.(Model)
+
+	m.textarea.SetValue("/")
+	view := m.View()
+
+	assert.Contains(t, view, "/clear")
+	assert.Contains(t, view, "/status")
+	assert.Contains(t, view, "/help")
+}
+
+func TestModel_View_ShowsFilteredHints(t *testing.T) {
+	m := NewModel(nil, "test:default")
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = updated.(Model)
+
+	m.textarea.SetValue("/cl")
+	view := m.View()
+
+	assert.Contains(t, view, "/clear")
+	assert.NotContains(t, view, "/status")
+}
+
+func TestModel_View_NoHintsForNormalText(t *testing.T) {
+	m := NewModel(nil, "test:default")
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = updated.(Model)
+
+	m.textarea.SetValue("hello")
+	view := m.View()
+
+	assert.NotContains(t, view, "/clear")
+}
+
+func TestModel_TabCompletion(t *testing.T) {
+	m := NewModel(nil, "test:default")
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = updated.(Model)
+
+	m.textarea.SetValue("/cl")
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	m = updated.(Model)
+
+	assert.Equal(t, "/clear", m.textarea.Value())
+}
+
+func TestModel_TabCompletion_Ambiguous(t *testing.T) {
+	m := NewModel(nil, "test:default")
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = updated.(Model)
+
+	m.textarea.SetValue("/s")
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	m = updated.(Model)
+
+	assert.Equal(t, "/s", m.textarea.Value())
+}
+
 func TestListenForChunks(t *testing.T) {
 	ch := make(chan string, 2)
 	ch <- "chunk1"

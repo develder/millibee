@@ -203,6 +203,21 @@ millibee tui --model claude-sonnet-4.6    # Override model
 
 Features: markdown rendering (Glamour), scrollable chat history, multi-line input, thinking spinner. Uses the same `AgentLoop.ProcessDirect()` as agent mode.
 
+### Slash Commands
+
+All interaction modes support slash commands:
+
+| Command | Description | Usage |
+|---------|-------------|-------|
+| `/help` | Show available commands | `/help` |
+| `/status` | Show session info (messages, tokens, model) | `/status` |
+| `/clear` | Reset conversation history and summary | `/clear` |
+| `/show` | Show current setting | `/show [model\|channel\|agents]` |
+| `/list` | List available resources | `/list [models\|channels\|agents]` |
+| `/switch` | Change model or channel | `/switch [model\|channel] to <name>` |
+
+In the TUI and SSH channels, typing `/` shows matching command hints in the status bar, and **Tab** auto-completes when there is a single match.
+
 ### Gateway Mode (long-running bot)
 
 ```bash

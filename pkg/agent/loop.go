@@ -26,6 +26,7 @@ import (
 	"github.com/develder/millibee/pkg/skills/scanner"
 	"github.com/develder/millibee/pkg/state"
 	"github.com/develder/millibee/pkg/tools"
+	"github.com/develder/millibee/pkg/tui"
 	"github.com/develder/millibee/pkg/utils"
 )
 
@@ -1210,6 +1211,24 @@ func (al *AgentLoop) handleCommand(ctx context.Context, agent *AgentInstance, se
 		agent.Sessions.ClearSession(sessionKey)
 		agent.Sessions.Save(sessionKey)
 		return "Session cleared. Starting fresh.", true
+
+	case "/status":
+		history := agent.Sessions.GetHistory(sessionKey)
+		summary := agent.Sessions.GetSummary(sessionKey)
+		tokens := al.estimateTokens(history)
+		summaryInfo := "none"
+		if summary != "" {
+			summaryInfo = fmt.Sprintf("%d chars", len(summary))
+		}
+		return fmt.Sprintf(
+			"Session: %s\nModel: %s\nMessages: %d\nTokens (est): %d / %d\nSummary: %s",
+			sessionKey, agent.Model,
+			len(history), tokens, agent.ContextWindow,
+			summaryInfo,
+		), true
+
+	case "/help":
+		return tui.FormatHelp(), true
 
 	case "/switch":
 		if len(args) < 3 || args[1] != "to" {
