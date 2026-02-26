@@ -49,6 +49,11 @@
     "console": {
       "enabled": false
     },
+    "ssh": {
+      "enabled": false,
+      "address": "0.0.0.0:2222",
+      "password": "YOUR_SSH_PASSWORD"
+    },
     "telegram": {
       "enabled": false,
       "token": "YOUR_TELEGRAM_BOT_TOKEN",
