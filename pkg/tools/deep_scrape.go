@@ -152,7 +152,7 @@ func (t *DeepScrapeTool) deepCrawl(ctx context.Context, urlStr string, maxDepth,
 	}
 
 	// Poll for completion
-	pollURL := fmt.Sprintf("%s/job/%s", t.baseURL, taskID)
+	pollURL := fmt.Sprintf("%s/crawl/job/%s", t.baseURL, taskID)
 	for {
 		select {
 		case <-ctx.Done():

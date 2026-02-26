@@ -13,30 +13,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestDeepScrape_SinglePage_Success verifies single-page scraping returns fit_markdown content.
+// TestDeepScrape_SinglePage_Success verifies single-page scraping returns markdown content via /md.
 func TestDeepScrape_SinglePage_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/crawl", r.URL.Path)
+		assert.Equal(t, "/md", r.URL.Path)
 		assert.Equal(t, "POST", r.Method)
 
 		var payload map[string]any
 		json.NewDecoder(r.Body).Decode(&payload)
 
-		urls, ok := payload["urls"].([]any)
-		assert.True(t, ok, "expected urls array in payload")
-		assert.Len(t, urls, 1)
+		_, ok := payload["url"].(string)
+		assert.True(t, ok, "expected url string in payload")
 
-		response := map[string]any{
-			"results": []map[string]any{
-				{
-					"fit_markdown": "# Hello",
-					"markdown":     "# Hello (raw)",
-					"success":      true,
-				},
-			},
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		// /md returns markdown directly as plain text
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte("# Hello"))
 	}))
 	defer server.Close()
 
@@ -51,20 +42,11 @@ func TestDeepScrape_SinglePage_Success(t *testing.T) {
 	assert.Contains(t, result.ForUser, "example.com")
 }
 
-// TestDeepScrape_SinglePage_FallbackToMarkdown verifies fallback to markdown when fit_markdown is empty.
-func TestDeepScrape_SinglePage_FallbackToMarkdown(t *testing.T) {
+// TestDeepScrape_SinglePage_EmptyContent verifies error when /md returns empty content.
+func TestDeepScrape_SinglePage_EmptyContent(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		response := map[string]any{
-			"results": []map[string]any{
-				{
-					"fit_markdown": "",
-					"markdown":     "# Fallback Content",
-					"success":      true,
-				},
-			},
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte(""))
 	}))
 	defer server.Close()
 
@@ -73,8 +55,8 @@ func TestDeepScrape_SinglePage_FallbackToMarkdown(t *testing.T) {
 		"url": "https://example.com",
 	})
 
-	assert.False(t, result.IsError)
-	assert.Contains(t, result.ForLLM, "# Fallback Content")
+	assert.True(t, result.IsError)
+	assert.Contains(t, result.ForLLM, "no content")
 }
 
 // TestDeepScrape_DeepCrawl_Success verifies deep crawl mode with job polling.
@@ -93,7 +75,7 @@ func TestDeepScrape_DeepCrawl_Success(t *testing.T) {
 			response := map[string]any{"task_id": "abc-123"}
 			json.NewEncoder(w).Encode(response)
 
-		case r.URL.Path == "/job/abc-123" && r.Method == "GET":
+		case r.URL.Path == "/crawl/job/abc-123" && r.Method == "GET":
 			count := pollCount.Add(1)
 			if count < 2 {
 				json.NewEncoder(w).Encode(map[string]any{"status": "pending"})
@@ -137,7 +119,7 @@ func TestDeepScrape_DeepCrawl_Failed(t *testing.T) {
 		switch {
 		case r.URL.Path == "/crawl/job":
 			json.NewEncoder(w).Encode(map[string]any{"task_id": "fail-job"})
-		case r.URL.Path == "/job/fail-job":
+		case r.URL.Path == "/crawl/job/fail-job":
 			json.NewEncoder(w).Encode(map[string]any{
 				"status": "failed",
 				"error":  "crawl timed out",
@@ -191,7 +173,7 @@ func TestDeepScrape_ContextCancelled(t *testing.T) {
 		switch {
 		case r.URL.Path == "/crawl/job":
 			json.NewEncoder(w).Encode(map[string]any{"task_id": "cancel-job"})
-		case strings.HasPrefix(r.URL.Path, "/job/"):
+		case strings.HasPrefix(r.URL.Path, "/crawl/job/"):
 			pollCount.Add(1)
 			json.NewEncoder(w).Encode(map[string]any{"status": "pending"})
 		}
