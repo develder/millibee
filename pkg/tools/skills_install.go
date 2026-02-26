@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/develder/millibee/pkg/logger"
 	"github.com/develder/millibee/pkg/skills"
+	"github.com/develder/millibee/pkg/skills/scanner"
 	"github.com/develder/millibee/pkg/utils"
 )
 
@@ -20,16 +22,19 @@ import (
 type InstallSkillTool struct {
 	registryMgr *skills.RegistryManager
 	workspace   string
+	scanner     *scanner.Scanner
 	mu          sync.Mutex
 }
 
 // NewInstallSkillTool creates a new InstallSkillTool.
 // registryMgr is the shared registry manager (same instance as FindSkillsTool).
 // workspace is the root workspace directory; skills install to {workspace}/skills/{slug}/.
-func NewInstallSkillTool(registryMgr *skills.RegistryManager, workspace string) *InstallSkillTool {
+// sc is the security scanner that checks extracted skills for dangerous patterns.
+func NewInstallSkillTool(registryMgr *skills.RegistryManager, workspace string, sc *scanner.Scanner) *InstallSkillTool {
 	return &InstallSkillTool{
 		registryMgr: registryMgr,
 		workspace:   workspace,
+		scanner:     sc,
 		mu:          sync.Mutex{},
 	}
 }
@@ -130,6 +135,27 @@ func (t *InstallSkillTool) Execute(ctx context.Context, args map[string]any) *To
 		return ErrorResult(fmt.Sprintf("failed to install %q: %v", slug, err))
 	}
 
+	// Local security scan of extracted files.
+	var scanReport *scanner.ScanReport
+	if t.scanner != nil {
+		var scanErr error
+		scanReport, scanErr = t.scanner.ScanDirectory(targetDir)
+		if scanErr != nil {
+			logger.ErrorCF("tool", "Security scan failed",
+				map[string]any{
+					"tool":  "install_skill",
+					"slug":  slug,
+					"error": scanErr.Error(),
+				})
+		} else if scanReport.Verdict == scanner.VerdictBlock {
+			os.RemoveAll(targetDir)
+			return ErrorResult(fmt.Sprintf(
+				"skill %q blocked by local security scan (score %d):\n%s",
+				slug, scanReport.TotalScore, formatFindings(scanReport.Findings),
+			))
+		}
+	}
+
 	// Moderation: block malware.
 	if result.IsMalwareBlocked {
 		rmErr := os.RemoveAll(targetDir)
@@ -158,10 +184,13 @@ func (t *InstallSkillTool) Execute(ctx context.Context, args map[string]any) *To
 		_ = err
 	}
 
-	// Build result with moderation warning if suspicious.
+	// Build result with warnings.
 	var output string
 	if result.IsSuspicious {
 		output = fmt.Sprintf("⚠️ Warning: skill %q is flagged as suspicious (may contain risky patterns).\n\n", slug)
+	}
+	if scanReport != nil && scanReport.Verdict == scanner.VerdictWarn {
+		output += fmt.Sprintf("⚠️ Security scan warnings (score %d):\n%s\n", scanReport.TotalScore, formatFindings(scanReport.Findings))
 	}
 	output += fmt.Sprintf("Successfully installed skill %q v%s from %s registry.\nLocation: %s\n",
 		slug, result.Version, registry.Name(), targetDir)
@@ -198,4 +227,12 @@ func writeOriginMeta(targetDir, registryName, slug, version string) error {
 	}
 
 	return os.WriteFile(filepath.Join(targetDir, ".skill-origin.json"), data, 0o644)
+}
+
+func formatFindings(findings []scanner.Finding) string {
+	var sb strings.Builder
+	for _, f := range findings {
+		sb.WriteString(fmt.Sprintf("  - [%s] %s in %s:%d — %q\n", f.Category, f.PatternName, f.File, f.Line, f.Match))
+	}
+	return sb.String()
 }

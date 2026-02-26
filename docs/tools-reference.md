@@ -144,6 +144,8 @@ Configurable via `tools.cron` in config. See [Tools Configuration](tools_configu
 | `find_skills` | Search skill registries for installable skills | `query` (required) |
 | `install_skill` | Install a skill from a registry by slug | `slug` (required) |
 
+Installed skills are automatically scanned for dangerous patterns (reverse shells, credential harvesting, obfuscated code execution, suspicious URLs, bundled executables, prompt injection). Skills exceeding the risk threshold are blocked and removed. See `pkg/skills/scanner/` for pattern definitions.
+
 Configurable via `tools.skills` in config. See [Tools Configuration](tools_configuration.md#skills-tool).
 
 ## Communication Tool

@@ -23,6 +23,7 @@ import (
 	"github.com/develder/millibee/pkg/providers"
 	"github.com/develder/millibee/pkg/routing"
 	"github.com/develder/millibee/pkg/skills"
+	"github.com/develder/millibee/pkg/skills/scanner"
 	"github.com/develder/millibee/pkg/state"
 	"github.com/develder/millibee/pkg/tools"
 	"github.com/develder/millibee/pkg/utils"
@@ -157,7 +158,7 @@ func registerSharedTools(
 			time.Duration(cfg.Tools.Skills.SearchCache.TTLSeconds)*time.Second,
 		)
 		agent.Tools.Register(tools.NewFindSkillsTool(registryMgr, searchCache))
-		agent.Tools.Register(tools.NewInstallSkillTool(registryMgr, agent.Workspace))
+		agent.Tools.Register(tools.NewInstallSkillTool(registryMgr, agent.Workspace, scanner.New()))
 
 		// Spawn tool with allowlist checker
 		subagentManager := tools.NewSubagentManager(provider, agent.Model, agent.Workspace, msgBus)

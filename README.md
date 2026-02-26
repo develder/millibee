@@ -37,7 +37,7 @@ Everything below was built on top of PicoClaw's foundation:
 
 | Feature | Description |
 |---------|-------------|
-| **Security hardening** | AES-256-GCM encrypted credentials at rest, exec safety guards, SSRF protection, rate limiting, input validation middleware |
+| **Security hardening** | AES-256-GCM encrypted credentials at rest, exec safety guards, SSRF protection, rate limiting, input validation middleware, skill marketplace scanner |
 | **Memory vault** | Persistent notes the agent can save, search, and recall across sessions. Nightly index rebuild. Wikilink support. |
 | **SSH TUI channel** | Bubble Tea chat interface served over SSH via [Wish](https://github.com/charmbracelet/wish). `ssh user@host -p 2222` and you're in. |
 | **13 native git tools** | status, diff, log, show, branch, commit, add, reset, checkout, pull, merge, stash, push. No shell injection, configurable push policy. |
@@ -243,6 +243,7 @@ milli gateway                    ssh user@host -p 2222
 - **Rate limiting** — per-tool rate limits and concurrency caps
 - **Git push opt-in** — `allow_push: false` by default
 - **No shell interpolation** — git tools use `exec.Command("git", ...)` directly
+- **Skill security scanner** — marketplace skills are scanned on install for reverse shells, credential harvesting, obfuscated execution, suspicious URLs, bundled executables, and prompt injection. Blocked automatically above risk threshold.
 
 ## Workspace Layout
 
