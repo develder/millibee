@@ -316,7 +316,7 @@ func (fc *FallbackChain) ChatStream(
 				Provider: candidate.Provider,
 				Model:    candidate.Model,
 				Error:    err,
-				Reason:   FailoverOther,
+				Reason:   FailoverUnknown,
 			})
 			continue
 		}
@@ -327,7 +327,7 @@ func (fc *FallbackChain) ChatStream(
 				Provider: candidate.Provider,
 				Model:    candidate.Model,
 				Error:    fmt.Errorf("provider %s does not support streaming", candidate.Provider),
-				Reason:   FailoverOther,
+				Reason:   FailoverUnknown,
 			})
 			continue
 		}
