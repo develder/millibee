@@ -277,11 +277,8 @@ func TestDefaultConfig_Channels(t *testing.T) {
 	if cfg.Channels.Telegram.Enabled {
 		t.Error("Telegram should be disabled by default")
 	}
-	if cfg.Channels.Discord.Enabled {
-		t.Error("Discord should be disabled by default")
-	}
-	if cfg.Channels.Slack.Enabled {
-		t.Error("Slack should be disabled by default")
+	if cfg.Channels.Console.Enabled {
+		t.Error("Console should be disabled by default")
 	}
 	if cfg.Channels.SSH.Enabled {
 		t.Error("SSH should be disabled by default")

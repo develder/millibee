@@ -207,7 +207,7 @@ Features: markdown rendering (Glamour), scrollable chat history, multi-line inpu
 millibee gateway                    # Start with all enabled channels
 ```
 
-Connects to external platforms (Telegram, Discord, Slack, etc.) via the channel system. See `config.json` for channel configuration.
+Connects to external platforms (Telegram, SSH, Console) via the channel system. See `config.json` for channel configuration.
 
 ## Console Channel
 

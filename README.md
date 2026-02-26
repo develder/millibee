@@ -28,7 +28,7 @@ MilliBee is not trying to be Claude Code or Cursor. She's the **self-hosted, alw
 
 - **SSH in from any device** — laptop, tablet, phone terminal. No browser, no desktop app, no subscriptions.
 - **Your keys, your data** — config and memory vault live on your machine. Nothing leaves your network except API calls.
-- **Multi-channel** — same assistant answers on Telegram, Discord, and your terminal. One config, one brain.
+- **Multi-channel** — same assistant answers on Telegram, SSH, and Console. One config, one brain.
 - **Tiny footprint** — runs alongside your other Docker services without hogging resources.
 
 ## What MilliBee Adds
@@ -203,32 +203,6 @@ ssh user@your-host -p 2222
 
 </details>
 
-<details>
-<summary><b>Discord</b></summary>
-
-1. Create app at https://discord.com/developers/applications
-2. Enable MESSAGE CONTENT INTENT
-3. Configure:
-
-```json
-{
-  "channels": {
-    "discord": {
-      "enabled": true,
-      "token": "YOUR_BOT_TOKEN",
-      "allow_from": ["YOUR_USER_ID"],
-      "mention_only": false
-    }
-  }
-}
-```
-
-4. Invite bot (scopes: `bot`, permissions: Send Messages + Read History)
-5. `milli gateway`
-
-</details>
-
-Other channels: QQ, DingTalk, LINE, WeCom — inherited from PicoClaw, see config examples.
 
 ## Architecture
 
@@ -238,7 +212,7 @@ milli gateway                    ssh user@host -p 2222
      ▼                                  ▼
  ChannelManager ◄── SSH Channel (Wish + Bubble Tea)
      │               Telegram
-     │               Discord
+     │               Console
      ▼
  MessageBus ──► AgentLoop ──► ToolRegistry
                     │          (13 git tools

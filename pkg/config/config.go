@@ -181,18 +181,7 @@ type AgentDefaults struct {
 
 type ChannelsConfig struct {
 	Console  ConsoleConfig  `json:"console"`
-	WhatsApp WhatsAppConfig `json:"whatsapp"`
 	Telegram TelegramConfig `json:"telegram"`
-	Feishu   FeishuConfig   `json:"feishu"`
-	Discord  DiscordConfig  `json:"discord"`
-	MaixCam  MaixCamConfig  `json:"maixcam"`
-	QQ       QQConfig       `json:"qq"`
-	DingTalk DingTalkConfig `json:"dingtalk"`
-	Slack    SlackConfig    `json:"slack"`
-	LINE     LINEConfig     `json:"line"`
-	OneBot   OneBotConfig   `json:"onebot"`
-	WeCom    WeComConfig    `json:"wecom"`
-	WeComApp WeComAppConfig `json:"wecom_app"`
 	SSH      SSHConfig      `json:"ssh"`
 }
 
@@ -214,106 +203,11 @@ type ConsoleConfig struct {
 	Enabled bool `json:"enabled" env:"MILLIBEE_CHANNELS_CONSOLE_ENABLED"`
 }
 
-type WhatsAppConfig struct {
-	Enabled   bool                `json:"enabled"    env:"MILLIBEE_CHANNELS_WHATSAPP_ENABLED"`
-	BridgeURL string              `json:"bridge_url" env:"MILLIBEE_CHANNELS_WHATSAPP_BRIDGE_URL"`
-	AllowFrom FlexibleStringSlice `json:"allow_from" env:"MILLIBEE_CHANNELS_WHATSAPP_ALLOW_FROM"`
-}
-
 type TelegramConfig struct {
 	Enabled   bool                `json:"enabled"    env:"MILLIBEE_CHANNELS_TELEGRAM_ENABLED"`
 	Token     string              `json:"token"      env:"MILLIBEE_CHANNELS_TELEGRAM_TOKEN"`
 	Proxy     string              `json:"proxy"      env:"MILLIBEE_CHANNELS_TELEGRAM_PROXY"`
 	AllowFrom FlexibleStringSlice `json:"allow_from" env:"MILLIBEE_CHANNELS_TELEGRAM_ALLOW_FROM"`
-}
-
-type FeishuConfig struct {
-	Enabled           bool                `json:"enabled"            env:"MILLIBEE_CHANNELS_FEISHU_ENABLED"`
-	AppID             string              `json:"app_id"             env:"MILLIBEE_CHANNELS_FEISHU_APP_ID"`
-	AppSecret         string              `json:"app_secret"         env:"MILLIBEE_CHANNELS_FEISHU_APP_SECRET"`
-	EncryptKey        string              `json:"encrypt_key"        env:"MILLIBEE_CHANNELS_FEISHU_ENCRYPT_KEY"`
-	VerificationToken string              `json:"verification_token" env:"MILLIBEE_CHANNELS_FEISHU_VERIFICATION_TOKEN"`
-	AllowFrom         FlexibleStringSlice `json:"allow_from"         env:"MILLIBEE_CHANNELS_FEISHU_ALLOW_FROM"`
-}
-
-type DiscordConfig struct {
-	Enabled     bool                `json:"enabled"      env:"MILLIBEE_CHANNELS_DISCORD_ENABLED"`
-	Token       string              `json:"token"        env:"MILLIBEE_CHANNELS_DISCORD_TOKEN"`
-	AllowFrom   FlexibleStringSlice `json:"allow_from"   env:"MILLIBEE_CHANNELS_DISCORD_ALLOW_FROM"`
-	MentionOnly bool                `json:"mention_only" env:"MILLIBEE_CHANNELS_DISCORD_MENTION_ONLY"`
-}
-
-type MaixCamConfig struct {
-	Enabled   bool                `json:"enabled"    env:"MILLIBEE_CHANNELS_MAIXCAM_ENABLED"`
-	Host      string              `json:"host"       env:"MILLIBEE_CHANNELS_MAIXCAM_HOST"`
-	Port      int                 `json:"port"       env:"MILLIBEE_CHANNELS_MAIXCAM_PORT"`
-	AllowFrom FlexibleStringSlice `json:"allow_from" env:"MILLIBEE_CHANNELS_MAIXCAM_ALLOW_FROM"`
-}
-
-type QQConfig struct {
-	Enabled   bool                `json:"enabled"    env:"MILLIBEE_CHANNELS_QQ_ENABLED"`
-	AppID     string              `json:"app_id"     env:"MILLIBEE_CHANNELS_QQ_APP_ID"`
-	AppSecret string              `json:"app_secret" env:"MILLIBEE_CHANNELS_QQ_APP_SECRET"`
-	AllowFrom FlexibleStringSlice `json:"allow_from" env:"MILLIBEE_CHANNELS_QQ_ALLOW_FROM"`
-}
-
-type DingTalkConfig struct {
-	Enabled      bool                `json:"enabled"       env:"MILLIBEE_CHANNELS_DINGTALK_ENABLED"`
-	ClientID     string              `json:"client_id"     env:"MILLIBEE_CHANNELS_DINGTALK_CLIENT_ID"`
-	ClientSecret string              `json:"client_secret" env:"MILLIBEE_CHANNELS_DINGTALK_CLIENT_SECRET"`
-	AllowFrom    FlexibleStringSlice `json:"allow_from"    env:"MILLIBEE_CHANNELS_DINGTALK_ALLOW_FROM"`
-}
-
-type SlackConfig struct {
-	Enabled   bool                `json:"enabled"    env:"MILLIBEE_CHANNELS_SLACK_ENABLED"`
-	BotToken  string              `json:"bot_token"  env:"MILLIBEE_CHANNELS_SLACK_BOT_TOKEN"`
-	AppToken  string              `json:"app_token"  env:"MILLIBEE_CHANNELS_SLACK_APP_TOKEN"`
-	AllowFrom FlexibleStringSlice `json:"allow_from" env:"MILLIBEE_CHANNELS_SLACK_ALLOW_FROM"`
-}
-
-type LINEConfig struct {
-	Enabled            bool                `json:"enabled"              env:"MILLIBEE_CHANNELS_LINE_ENABLED"`
-	ChannelSecret      string              `json:"channel_secret"       env:"MILLIBEE_CHANNELS_LINE_CHANNEL_SECRET"`
-	ChannelAccessToken string              `json:"channel_access_token" env:"MILLIBEE_CHANNELS_LINE_CHANNEL_ACCESS_TOKEN"`
-	WebhookHost        string              `json:"webhook_host"         env:"MILLIBEE_CHANNELS_LINE_WEBHOOK_HOST"`
-	WebhookPort        int                 `json:"webhook_port"         env:"MILLIBEE_CHANNELS_LINE_WEBHOOK_PORT"`
-	WebhookPath        string              `json:"webhook_path"         env:"MILLIBEE_CHANNELS_LINE_WEBHOOK_PATH"`
-	AllowFrom          FlexibleStringSlice `json:"allow_from"           env:"MILLIBEE_CHANNELS_LINE_ALLOW_FROM"`
-}
-
-type OneBotConfig struct {
-	Enabled            bool                `json:"enabled"              env:"MILLIBEE_CHANNELS_ONEBOT_ENABLED"`
-	WSUrl              string              `json:"ws_url"               env:"MILLIBEE_CHANNELS_ONEBOT_WS_URL"`
-	AccessToken        string              `json:"access_token"         env:"MILLIBEE_CHANNELS_ONEBOT_ACCESS_TOKEN"`
-	ReconnectInterval  int                 `json:"reconnect_interval"   env:"MILLIBEE_CHANNELS_ONEBOT_RECONNECT_INTERVAL"`
-	GroupTriggerPrefix []string            `json:"group_trigger_prefix" env:"MILLIBEE_CHANNELS_ONEBOT_GROUP_TRIGGER_PREFIX"`
-	AllowFrom          FlexibleStringSlice `json:"allow_from"           env:"MILLIBEE_CHANNELS_ONEBOT_ALLOW_FROM"`
-}
-
-type WeComConfig struct {
-	Enabled        bool                `json:"enabled"          env:"MILLIBEE_CHANNELS_WECOM_ENABLED"`
-	Token          string              `json:"token"            env:"MILLIBEE_CHANNELS_WECOM_TOKEN"`
-	EncodingAESKey string              `json:"encoding_aes_key" env:"MILLIBEE_CHANNELS_WECOM_ENCODING_AES_KEY"`
-	WebhookURL     string              `json:"webhook_url"      env:"MILLIBEE_CHANNELS_WECOM_WEBHOOK_URL"`
-	WebhookHost    string              `json:"webhook_host"     env:"MILLIBEE_CHANNELS_WECOM_WEBHOOK_HOST"`
-	WebhookPort    int                 `json:"webhook_port"     env:"MILLIBEE_CHANNELS_WECOM_WEBHOOK_PORT"`
-	WebhookPath    string              `json:"webhook_path"     env:"MILLIBEE_CHANNELS_WECOM_WEBHOOK_PATH"`
-	AllowFrom      FlexibleStringSlice `json:"allow_from"       env:"MILLIBEE_CHANNELS_WECOM_ALLOW_FROM"`
-	ReplyTimeout   int                 `json:"reply_timeout"    env:"MILLIBEE_CHANNELS_WECOM_REPLY_TIMEOUT"`
-}
-
-type WeComAppConfig struct {
-	Enabled        bool                `json:"enabled"          env:"MILLIBEE_CHANNELS_WECOM_APP_ENABLED"`
-	CorpID         string              `json:"corp_id"          env:"MILLIBEE_CHANNELS_WECOM_APP_CORP_ID"`
-	CorpSecret     string              `json:"corp_secret"      env:"MILLIBEE_CHANNELS_WECOM_APP_CORP_SECRET"`
-	AgentID        int64               `json:"agent_id"         env:"MILLIBEE_CHANNELS_WECOM_APP_AGENT_ID"`
-	Token          string              `json:"token"            env:"MILLIBEE_CHANNELS_WECOM_APP_TOKEN"`
-	EncodingAESKey string              `json:"encoding_aes_key" env:"MILLIBEE_CHANNELS_WECOM_APP_ENCODING_AES_KEY"`
-	WebhookHost    string              `json:"webhook_host"     env:"MILLIBEE_CHANNELS_WECOM_APP_WEBHOOK_HOST"`
-	WebhookPort    int                 `json:"webhook_port"     env:"MILLIBEE_CHANNELS_WECOM_APP_WEBHOOK_PORT"`
-	WebhookPath    string              `json:"webhook_path"     env:"MILLIBEE_CHANNELS_WECOM_APP_WEBHOOK_PATH"`
-	AllowFrom      FlexibleStringSlice `json:"allow_from"       env:"MILLIBEE_CHANNELS_WECOM_APP_ALLOW_FROM"`
-	ReplyTimeout   int                 `json:"reply_timeout"    env:"MILLIBEE_CHANNELS_WECOM_APP_REPLY_TIMEOUT"`
 }
 
 type HeartbeatConfig struct {

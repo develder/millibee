@@ -206,10 +206,6 @@ func TestConvertConfig(t *testing.T) {
 					"token":      "tg-token-123",
 					"allow_from": []any{"user1"},
 				},
-				"discord": map[string]any{
-					"enabled": true,
-					"token":   "disc-token-456",
-				},
 			},
 		}
 
@@ -225,9 +221,6 @@ func TestConvertConfig(t *testing.T) {
 		}
 		if len(cfg.Channels.Telegram.AllowFrom) != 1 || cfg.Channels.Telegram.AllowFrom[0] != "user1" {
 			t.Errorf("Telegram.AllowFrom = %v, want [user1]", cfg.Channels.Telegram.AllowFrom)
-		}
-		if !cfg.Channels.Discord.Enabled {
-			t.Error("Discord should be enabled")
 		}
 	})
 

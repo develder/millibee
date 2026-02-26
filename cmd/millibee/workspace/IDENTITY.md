@@ -21,7 +21,7 @@ Lean, dockerized AI assistant written in Go. Fork of PicoClaw, sharpened into a 
 - Web search and deep scraping (Crawl4AI)
 - File system operations (read, write, edit, glob, grep)
 - Shell command execution with safety guards
-- Multi-channel messaging (Telegram, Discord, SSH TUI, and more)
+- Multi-channel messaging (Telegram, SSH TUI, Console)
 - Memory vault (save, search, recall across sessions)
 - YouTube transcript extraction
 - Audio transcription (Whisper)

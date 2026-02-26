@@ -89,7 +89,7 @@ docker compose -f docker/docker-compose.yml logs -f crawl4ai yt-transcript whisp
 
 ### 5. Start MilliBee
 
-**Gateway mode** (long-running bot, connects to Telegram/Discord/etc.):
+**Gateway mode** (long-running bot, connects to Telegram, SSH, Console):
 
 ```bash
 docker compose -f docker/docker-compose.yml --profile gateway up -d millibee-gateway
