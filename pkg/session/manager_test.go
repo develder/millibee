@@ -60,6 +60,40 @@ func TestSave_WithColonInKey(t *testing.T) {
 	}
 }
 
+func TestClearSession(t *testing.T) {
+	tmpDir := t.TempDir()
+	sm := NewSessionManager(tmpDir)
+
+	key := "telegram:123"
+	sm.GetOrCreate(key)
+	sm.AddMessage(key, "user", "hello")
+	sm.AddMessage(key, "assistant", "hi there")
+	sm.SetSummary(key, "previous conversation summary")
+
+	// Verify pre-condition
+	if len(sm.GetHistory(key)) != 2 {
+		t.Fatal("expected 2 messages before clear")
+	}
+	if sm.GetSummary(key) == "" {
+		t.Fatal("expected non-empty summary before clear")
+	}
+
+	sm.ClearSession(key)
+
+	if len(sm.GetHistory(key)) != 0 {
+		t.Errorf("expected 0 messages after clear, got %d", len(sm.GetHistory(key)))
+	}
+	if sm.GetSummary(key) != "" {
+		t.Errorf("expected empty summary after clear, got %q", sm.GetSummary(key))
+	}
+}
+
+func TestClearSession_NonExistent(t *testing.T) {
+	sm := NewSessionManager(t.TempDir())
+	// Should not panic on non-existent session
+	sm.ClearSession("does-not-exist")
+}
+
 func TestSave_RejectsPathTraversal(t *testing.T) {
 	tmpDir := t.TempDir()
 	sm := NewSessionManager(tmpDir)

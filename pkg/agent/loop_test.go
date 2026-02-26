@@ -437,6 +437,62 @@ func (h testHelper) executeAndGetResponse(tb testing.TB, ctx context.Context, ms
 
 const responseTimeout = 3 * time.Second
 
+// TestClearCommand verifies /clear resets session history and summary
+func TestClearCommand(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	cfg := &config.Config{
+		Agents: config.AgentsConfig{
+			Defaults: config.AgentDefaults{
+				Workspace:         tmpDir,
+				Model:             "test-model",
+				MaxTokens:         4096,
+				MaxToolIterations: 10,
+			},
+		},
+	}
+
+	msgBus := bus.NewMessageBus()
+	provider := &simpleMockProvider{response: "OK"}
+	al := NewAgentLoop(cfg, msgBus, provider)
+
+	agent := al.registry.GetDefaultAgent()
+	if agent == nil {
+		t.Fatal("No default agent found")
+	}
+
+	// Seed the session with some history and a summary
+	sessionKey := "agent:main:main"
+	agent.Sessions.AddMessage(sessionKey, "user", "hello")
+	agent.Sessions.AddMessage(sessionKey, "assistant", "hi there")
+	agent.Sessions.SetSummary(sessionKey, "talked about greetings")
+
+	if len(agent.Sessions.GetHistory(sessionKey)) != 2 {
+		t.Fatal("expected 2 messages before /clear")
+	}
+
+	ctx := context.Background()
+	response, err := al.processMessage(ctx, bus.InboundMessage{
+		Channel:  "test",
+		SenderID: "user1",
+		ChatID:   "chat1",
+		Content:  "/clear",
+	})
+	if err != nil {
+		t.Fatalf("processMessage failed: %v", err)
+	}
+
+	if response != "Session cleared. Starting fresh." {
+		t.Errorf("unexpected response: %s", response)
+	}
+	if len(agent.Sessions.GetHistory(sessionKey)) != 0 {
+		t.Errorf("expected 0 messages after /clear, got %d", len(agent.Sessions.GetHistory(sessionKey)))
+	}
+	if agent.Sessions.GetSummary(sessionKey) != "" {
+		t.Errorf("expected empty summary after /clear")
+	}
+}
+
 // TestToolResult_SilentToolDoesNotSendUserMessage verifies silent tools don't trigger outbound
 func TestToolResult_SilentToolDoesNotSendUserMessage(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "agent-test-*")

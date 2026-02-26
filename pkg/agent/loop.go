@@ -335,11 +335,6 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage,
 		return al.processSystemMessage(ctx, msg)
 	}
 
-	// Check for commands
-	if response, handled := al.handleCommand(ctx, msg); handled {
-		return response, nil
-	}
-
 	// Route to determine agent and session key
 	route := al.registry.ResolveRoute(routing.RouteInput{
 		Channel:    msg.Channel,
@@ -359,6 +354,11 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage,
 	sessionKey := route.SessionKey
 	if msg.SessionKey != "" && strings.HasPrefix(msg.SessionKey, "agent:") {
 		sessionKey = msg.SessionKey
+	}
+
+	// Check for commands (after routing so we have session key)
+	if response, handled := al.handleCommand(ctx, agent, sessionKey, msg); handled {
+		return response, nil
 	}
 
 	logger.InfoCF("agent", "Routed message",
@@ -1148,7 +1148,7 @@ func (al *AgentLoop) estimateTokens(messages []providers.Message) int {
 	return totalChars * 2 / 5
 }
 
-func (al *AgentLoop) handleCommand(ctx context.Context, msg bus.InboundMessage) (string, bool) {
+func (al *AgentLoop) handleCommand(ctx context.Context, agent *AgentInstance, sessionKey string, msg bus.InboundMessage) (string, bool) {
 	content := strings.TrimSpace(msg.Content)
 	if !strings.HasPrefix(content, "/") {
 		return "", false
@@ -1205,6 +1205,11 @@ func (al *AgentLoop) handleCommand(ctx context.Context, msg bus.InboundMessage) 
 		default:
 			return fmt.Sprintf("Unknown list target: %s", args[0]), true
 		}
+
+	case "/clear":
+		agent.Sessions.ClearSession(sessionKey)
+		agent.Sessions.Save(sessionKey)
+		return "Session cleared. Starting fresh.", true
 
 	case "/switch":
 		if len(args) < 3 || args[1] != "to" {
