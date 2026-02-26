@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -519,7 +520,7 @@ func TestHelpCommand(t *testing.T) {
 	}
 
 	// Should contain all command names
-	for _, cmd := range []string{"/clear", "/status", "/help", "/show", "/list", "/switch", "/optimize"} {
+	for _, cmd := range []string{"/clear", "/status", "/help", "/show", "/list", "/switch", "/optimize", "/commit"} {
 		if !strings.Contains(response, cmd) {
 			t.Errorf("expected /help to mention %s", cmd)
 		}
@@ -690,6 +691,172 @@ func TestStatusCommandShowsOptimize(t *testing.T) {
 	}
 	if !strings.Contains(response, "Optimize:") {
 		t.Errorf("expected /status to show Optimize field, got: %s", response)
+	}
+}
+
+// setupGitWorkspace creates a temp dir with an initialized git repo for testing.
+func setupGitWorkspace(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	run := func(args ...string) {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %v failed: %v\n%s", args, err, out)
+		}
+	}
+	run("init")
+	run("config", "user.email", "test@test.com")
+	run("config", "user.name", "Test")
+	// Initial commit so repo is not empty
+	os.WriteFile(filepath.Join(dir, "init.txt"), []byte("init"), 0o644)
+	run("add", "init.txt")
+	run("commit", "-m", "initial commit")
+	return dir
+}
+
+// TestCommitCommand_CleanTree verifies /commit with nothing to commit
+func TestCommitCommand_CleanTree(t *testing.T) {
+	dir := setupGitWorkspace(t)
+	cfg := &config.Config{
+		Agents: config.AgentsConfig{
+			Defaults: config.AgentDefaults{
+				Workspace:         dir,
+				Model:             "test-model",
+				MaxTokens:         4096,
+				MaxToolIterations: 10,
+			},
+		},
+		Tools: config.ToolsConfig{Git: config.GitToolsConfig{Enabled: true}},
+	}
+
+	al := NewAgentLoop(cfg, bus.NewMessageBus(), &simpleMockProvider{response: "OK"})
+
+	ctx := context.Background()
+	response, err := al.processMessage(ctx, bus.InboundMessage{
+		Channel: "test", SenderID: "u1", ChatID: "c1", Content: "/commit",
+	})
+	if err != nil {
+		t.Fatalf("processMessage failed: %v", err)
+	}
+	if !strings.Contains(strings.ToLower(response), "nothing to commit") &&
+		!strings.Contains(strings.ToLower(response), "clean") {
+		t.Errorf("expected clean tree message, got: %s", response)
+	}
+}
+
+// TestCommitCommand_NoStaged verifies /commit with unstaged changes only
+func TestCommitCommand_NoStaged(t *testing.T) {
+	dir := setupGitWorkspace(t)
+	// Modify a file but don't stage it
+	os.WriteFile(filepath.Join(dir, "init.txt"), []byte("modified"), 0o644)
+
+	cfg := &config.Config{
+		Agents: config.AgentsConfig{
+			Defaults: config.AgentDefaults{
+				Workspace:         dir,
+				Model:             "test-model",
+				MaxTokens:         4096,
+				MaxToolIterations: 10,
+			},
+		},
+		Tools: config.ToolsConfig{Git: config.GitToolsConfig{Enabled: true}},
+	}
+
+	al := NewAgentLoop(cfg, bus.NewMessageBus(), &simpleMockProvider{response: "OK"})
+
+	ctx := context.Background()
+	response, err := al.processMessage(ctx, bus.InboundMessage{
+		Channel: "test", SenderID: "u1", ChatID: "c1", Content: "/commit",
+	})
+	if err != nil {
+		t.Fatalf("processMessage failed: %v", err)
+	}
+	if !strings.Contains(strings.ToLower(response), "no staged") &&
+		!strings.Contains(strings.ToLower(response), "git add") {
+		t.Errorf("expected 'no staged changes' message, got: %s", response)
+	}
+}
+
+// TestCommitCommand_Success verifies /commit with staged changes generates message and commits
+func TestCommitCommand_Success(t *testing.T) {
+	dir := setupGitWorkspace(t)
+	// Stage a change
+	os.WriteFile(filepath.Join(dir, "feature.txt"), []byte("new feature"), 0o644)
+	cmd := exec.Command("git", "add", "feature.txt")
+	cmd.Dir = dir
+	cmd.CombinedOutput()
+
+	cfg := &config.Config{
+		Agents: config.AgentsConfig{
+			Defaults: config.AgentDefaults{
+				Workspace:         dir,
+				Model:             "test-model",
+				MaxTokens:         4096,
+				MaxToolIterations: 10,
+			},
+		},
+		Tools: config.ToolsConfig{Git: config.GitToolsConfig{Enabled: true}},
+	}
+
+	// Mock provider returns the commit message
+	al := NewAgentLoop(cfg, bus.NewMessageBus(), &simpleMockProvider{response: "feat: add new feature"})
+
+	ctx := context.Background()
+	response, err := al.processMessage(ctx, bus.InboundMessage{
+		Channel: "test", SenderID: "u1", ChatID: "c1", Content: "/commit",
+	})
+	if err != nil {
+		t.Fatalf("processMessage failed: %v", err)
+	}
+	if !strings.Contains(response, "feat: add new feature") {
+		t.Errorf("expected generated commit message in response, got: %s", response)
+	}
+
+	// Verify the commit was actually made
+	logCmd := exec.Command("git", "log", "--oneline", "-1")
+	logCmd.Dir = dir
+	logOut, err := logCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git log failed: %v", err)
+	}
+	if !strings.Contains(string(logOut), "feat: add new feature") {
+		t.Errorf("expected commit in git log, got: %s", string(logOut))
+	}
+}
+
+// TestCommitCommand_WithHint verifies /commit passes hint to LLM
+func TestCommitCommand_WithHint(t *testing.T) {
+	dir := setupGitWorkspace(t)
+	os.WriteFile(filepath.Join(dir, "bugfix.txt"), []byte("fix"), 0o644)
+	cmd := exec.Command("git", "add", "bugfix.txt")
+	cmd.Dir = dir
+	cmd.CombinedOutput()
+
+	cfg := &config.Config{
+		Agents: config.AgentsConfig{
+			Defaults: config.AgentDefaults{
+				Workspace:         dir,
+				Model:             "test-model",
+				MaxTokens:         4096,
+				MaxToolIterations: 10,
+			},
+		},
+		Tools: config.ToolsConfig{Git: config.GitToolsConfig{Enabled: true}},
+	}
+
+	al := NewAgentLoop(cfg, bus.NewMessageBus(), &simpleMockProvider{response: "fix: resolve auth bug"})
+
+	ctx := context.Background()
+	response, err := al.processMessage(ctx, bus.InboundMessage{
+		Channel: "test", SenderID: "u1", ChatID: "c1", Content: "/commit fix auth bug",
+	})
+	if err != nil {
+		t.Fatalf("processMessage failed: %v", err)
+	}
+	if !strings.Contains(response, "fix: resolve auth bug") {
+		t.Errorf("expected commit message with hint, got: %s", response)
 	}
 }
 

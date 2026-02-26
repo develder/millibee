@@ -18,6 +18,7 @@ func Commands() []SlashCommand {
 		{Name: "/list", Description: "List available resources", Usage: "/list [models|channels|agents]"},
 		{Name: "/switch", Description: "Change model or channel", Usage: "/switch [model|channel] to <name>"},
 		{Name: "/optimize", Description: "Toggle prompt optimization", Usage: "/optimize [on|off]"},
+		{Name: "/commit", Description: "Commit staged changes with auto-generated message", Usage: "/commit [hint]"},
 		{Name: "/help", Description: "Show available commands", Usage: "/help"},
 	}
 }

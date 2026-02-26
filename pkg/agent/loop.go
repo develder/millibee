@@ -1267,6 +1267,10 @@ func (al *AgentLoop) handleCommand(ctx context.Context, agent *AgentInstance, se
 			return fmt.Sprintf("Unknown value: %s. Use on or off.", args[0]), true
 		}
 
+	case "/commit":
+		hint := strings.Join(args, " ")
+		return al.handleCommitCommand(ctx, agent, hint)
+
 	case "/switch":
 		if len(args) < 3 || args[1] != "to" {
 			return "Usage: /switch [model|channel] to <name>", true
@@ -1297,6 +1301,68 @@ func (al *AgentLoop) handleCommand(ctx context.Context, agent *AgentInstance, se
 	}
 
 	return "", false
+}
+
+// handleCommitCommand handles the /commit slash command.
+// It checks for staged changes, generates a commit message via the LLM, and commits.
+func (al *AgentLoop) handleCommitCommand(ctx context.Context, agent *AgentInstance, hint string) (string, bool) {
+	// 1. Get staged diff
+	diff := agent.Tools.Execute(ctx, "git_diff", map[string]any{"staged": true})
+	if diff.IsError {
+		return diff.ForLLM, true
+	}
+
+	if strings.TrimSpace(diff.ForLLM) == "" {
+		// Nothing staged — check if there are unstaged changes
+		unstaged := agent.Tools.Execute(ctx, "git_diff", nil)
+		if strings.TrimSpace(unstaged.ForLLM) == "" {
+			return "Nothing to commit (working tree clean)", true
+		}
+		return "No staged changes. Use `git add` first, or ask me to stage files.", true
+	}
+
+	// 2. Generate commit message via LLM
+	message, err := al.generateCommitMessage(ctx, agent, diff.ForLLM, hint)
+	if err != nil {
+		return fmt.Sprintf("Failed to generate commit message: %v", err), true
+	}
+
+	// 3. Execute commit
+	commitResult := agent.Tools.Execute(ctx, "git_commit", map[string]any{
+		"message": message,
+	})
+	if commitResult.IsError {
+		return commitResult.ForLLM, true
+	}
+
+	return fmt.Sprintf("Committed:\n%s\n\n%s", message, commitResult.ForLLM), true
+}
+
+// generateCommitMessage uses the LLM to generate a commit message from a diff.
+func (al *AgentLoop) generateCommitMessage(ctx context.Context, agent *AgentInstance, diff string, hint string) (string, error) {
+	// Truncate large diffs
+	if len(diff) > 4000 {
+		diff = diff[:4000] + "\n... (truncated)"
+	}
+
+	prompt := "Generate a concise git commit message for this diff. " +
+		"Use conventional commits format (feat:, fix:, refactor:, etc). " +
+		"One line summary, optionally followed by a blank line and brief body. " +
+		"No quotes around the message."
+	if hint != "" {
+		prompt += fmt.Sprintf("\nHint from developer: %s", hint)
+	}
+
+	messages := []providers.Message{
+		{Role: "system", Content: prompt},
+		{Role: "user", Content: diff},
+	}
+
+	resp, err := agent.Provider.Chat(ctx, messages, nil, agent.Model, nil)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(resp.Content), nil
 }
 
 // extractPeer extracts the routing peer from inbound message metadata.

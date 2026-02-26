@@ -24,6 +24,7 @@ func TestCommandsReturnsAll(t *testing.T) {
 	assert.Contains(t, names, "/list")
 	assert.Contains(t, names, "/switch")
 	assert.Contains(t, names, "/optimize")
+	assert.Contains(t, names, "/commit")
 }
 
 func TestMatchCommandsExactMatch(t *testing.T) {
