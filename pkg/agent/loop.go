@@ -505,12 +505,7 @@ func (al *AgentLoop) runAgentLoop(ctx context.Context, agent *AgentInstance, opt
 	agent.Sessions.AddMessage(opts.SessionKey, "assistant", finalContent)
 	agent.Sessions.Save(opts.SessionKey)
 
-	// 7. Optional: summarization
-	if opts.EnableSummary {
-		al.maybeSummarize(agent, opts.SessionKey, opts.Channel, opts.ChatID)
-	}
-
-	// 8. Optional: send response via bus
+	// 7. Optional: send response via bus (before summarization to avoid race)
 	if opts.SendResponse {
 		al.bus.PublishOutbound(bus.OutboundMessage{
 			Channel: opts.Channel,
@@ -519,7 +514,7 @@ func (al *AgentLoop) runAgentLoop(ctx context.Context, agent *AgentInstance, opt
 		})
 	}
 
-	// 9. Log response
+	// 8. Log response
 	responsePreview := utils.Truncate(finalContent, 120)
 	logger.InfoCF("agent", fmt.Sprintf("Response: %s", responsePreview),
 		map[string]any{
@@ -528,6 +523,11 @@ func (al *AgentLoop) runAgentLoop(ctx context.Context, agent *AgentInstance, opt
 			"iterations":   iteration,
 			"final_length": len(finalContent),
 		})
+
+	// 9. Optional: background summarization (after response is sent)
+	if opts.EnableSummary {
+		al.maybeSummarize(agent, opts.SessionKey, opts.Channel, opts.ChatID)
+	}
 
 	return finalContent, nil
 }
@@ -878,19 +878,15 @@ func (al *AgentLoop) maybeSummarize(agent *AgentInstance, sessionKey, channel, c
 	tokenEstimate := al.estimateTokens(newHistory)
 	threshold := agent.ContextWindow * 75 / 100
 
-	if len(newHistory) > 20 || tokenEstimate > threshold {
+	if tokenEstimate > threshold {
 		summarizeKey := agent.ID + ":" + sessionKey
 		if _, loading := al.summarizing.LoadOrStore(summarizeKey, true); !loading {
 			go func() {
 				defer al.summarizing.Delete(summarizeKey)
-				if !constants.IsInternalChannel(channel) {
-					al.bus.PublishOutbound(bus.OutboundMessage{
-						Channel: channel,
-						ChatID:  chatID,
-						Content: "Memory threshold reached. Optimizing conversation history...",
-					})
-				}
 				al.summarizeSession(agent, sessionKey)
+				logger.InfoCF("agent", "Background summarization completed", map[string]any{
+					"session_key": sessionKey,
+				})
 			}()
 		}
 	}
