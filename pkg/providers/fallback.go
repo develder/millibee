@@ -267,6 +267,139 @@ func (fc *FallbackChain) ExecuteImage(
 	return nil, &FallbackExhaustedError{Attempts: result.Attempts}
 }
 
+// ChatStream runs the fallback chain for streaming chat requests.
+// It tries each candidate in order, checking if the provider supports streaming.
+// The getStreamer function should return a StreamingLLMProvider for the given provider/model.
+// If no candidate supports streaming, it returns an error.
+func (fc *FallbackChain) ChatStream(
+	ctx context.Context,
+	candidates []FallbackCandidate,
+	messages []Message,
+	tools []ToolDefinition,
+	options map[string]any,
+	onChunk StreamCallback,
+	getStreamer func(provider, model string) (StreamingLLMProvider, error),
+) (*LLMResponse, error) {
+	if len(candidates) == 0 {
+		return nil, fmt.Errorf("fallback: no candidates configured")
+	}
+
+	var attempts []FallbackAttempt
+
+	for i, candidate := range candidates {
+		// Check context before each attempt.
+		if ctx.Err() == context.Canceled {
+			return nil, context.Canceled
+		}
+
+		// Check cooldown.
+		if !fc.cooldown.IsAvailable(candidate.Provider) {
+			remaining := fc.cooldown.CooldownRemaining(candidate.Provider)
+			attempts = append(attempts, FallbackAttempt{
+				Provider: candidate.Provider,
+				Model:    candidate.Model,
+				Skipped:  true,
+				Reason:   FailoverRateLimit,
+				Error: fmt.Errorf(
+					"provider %s in cooldown (%s remaining)",
+					candidate.Provider,
+					remaining.Round(time.Second),
+				),
+			})
+			continue
+		}
+
+		// Try to get a streaming provider for this candidate.
+		streamer, err := getStreamer(candidate.Provider, candidate.Model)
+		if err != nil {
+			attempts = append(attempts, FallbackAttempt{
+				Provider: candidate.Provider,
+				Model:    candidate.Model,
+				Error:    err,
+				Reason:   FailoverOther,
+			})
+			continue
+		}
+
+		// Check if the provider supports streaming.
+		if streamer == nil {
+			attempts = append(attempts, FallbackAttempt{
+				Provider: candidate.Provider,
+				Model:    candidate.Model,
+				Error:    fmt.Errorf("provider %s does not support streaming", candidate.Provider),
+				Reason:   FailoverOther,
+			})
+			continue
+		}
+
+		// Try streaming.
+		start := time.Now()
+		resp, err := streamer.ChatStream(ctx, messages, tools, candidate.Model, options, onChunk)
+		elapsed := time.Since(start)
+
+		if err == nil {
+			// Success.
+			fc.cooldown.MarkSuccess(candidate.Provider)
+			return resp, nil
+		}
+
+		// Context cancellation: abort immediately.
+		if ctx.Err() == context.Canceled {
+			attempts = append(attempts, FallbackAttempt{
+				Provider: candidate.Provider,
+				Model:    candidate.Model,
+				Error:    err,
+				Duration: elapsed,
+			})
+			return nil, context.Canceled
+		}
+
+		// Classify the error.
+		failErr := ClassifyError(err, candidate.Provider, candidate.Model)
+
+		if failErr == nil {
+			attempts = append(attempts, FallbackAttempt{
+				Provider: candidate.Provider,
+				Model:    candidate.Model,
+				Error:    err,
+				Duration: elapsed,
+			})
+			return nil, fmt.Errorf("fallback: unclassified error from %s/%s: %w",
+				candidate.Provider, candidate.Model, err)
+		}
+
+		// Non-retriable error: abort immediately.
+		if !failErr.IsRetriable() {
+			attempts = append(attempts, FallbackAttempt{
+				Provider: candidate.Provider,
+				Model:    candidate.Model,
+				Error:    failErr,
+				Reason:   failErr.Reason,
+				Duration: elapsed,
+			})
+			return nil, failErr
+		}
+
+		// Retriable error: mark failure and continue to next candidate.
+		fc.cooldown.MarkFailure(candidate.Provider, failErr.Reason)
+		attempts = append(attempts, FallbackAttempt{
+			Provider: candidate.Provider,
+			Model:    candidate.Model,
+			Error:    failErr,
+			Reason:   failErr.Reason,
+			Duration: elapsed,
+		})
+
+		// If this was the last candidate, return aggregate error.
+		if i == len(candidates)-1 {
+			return nil, &FallbackExhaustedError{Attempts: attempts}
+		}
+	}
+
+	// All candidates were skipped (all in cooldown).
+	return nil, &FallbackExhaustedError{Attempts: attempts}
+}
+
 // FallbackExhaustedError indicates all fallback candidates were tried and failed.
 type FallbackExhaustedError struct {
 	Attempts []FallbackAttempt

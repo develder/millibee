@@ -610,6 +610,28 @@ func (al *AgentLoop) runLLMIteration(
 		}
 
 		callLLM := func() (*providers.LLMResponse, error) {
+			// Use streaming if a chunk callback is set
+			if opts.OnChunk != nil {
+				// If multiple candidates, use fallback chain with streaming
+				if len(agent.Candidates) > 1 && al.fallback != nil {
+					return al.fallback.ChatStream(ctx, agent.Candidates,
+						messages, providerToolDefs, llmOpts, opts.OnChunk,
+						func(provider, model string) (providers.StreamingLLMProvider, error) {
+							// The provider supports all models via the model parameter
+							if streamer, ok := agent.Provider.(providers.StreamingLLMProvider); ok {
+								return streamer, nil
+							}
+							return nil, nil
+						},
+					)
+				}
+				// Single candidate with streaming support
+				if streamer, ok := agent.Provider.(providers.StreamingLLMProvider); ok {
+					return streamer.ChatStream(ctx, messages, providerToolDefs, agent.Model, llmOpts, opts.OnChunk)
+				}
+			}
+
+			// No streaming: use regular Chat
 			if len(agent.Candidates) > 1 && al.fallback != nil {
 				fbResult, fbErr := al.fallback.Execute(ctx, agent.Candidates,
 					func(ctx context.Context, provider, model string) (*providers.LLMResponse, error) {
@@ -625,12 +647,6 @@ func (al *AgentLoop) runLLMIteration(
 						map[string]any{"agent_id": agent.ID, "iteration": iteration})
 				}
 				return fbResult.Response, nil
-			}
-			// Use streaming if provider supports it and a chunk callback is set
-			if opts.OnChunk != nil {
-				if streamer, ok := agent.Provider.(providers.StreamingLLMProvider); ok {
-					return streamer.ChatStream(ctx, messages, providerToolDefs, agent.Model, llmOpts, opts.OnChunk)
-				}
 			}
 			return agent.Provider.Chat(ctx, messages, providerToolDefs, agent.Model, llmOpts)
 		}
