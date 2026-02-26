@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -686,7 +687,7 @@ func (al *AgentLoop) runLLMIteration(
 
 		// Check if no tool calls - we're done
 		if len(response.ToolCalls) == 0 {
-			finalContent = response.Content
+			finalContent = stripThinkTags(response.Content)
 			logger.InfoCF("agent", "LLM response without tool calls (direct answer)",
 				map[string]any{
 					"agent_id":      agent.ID,
@@ -844,7 +845,7 @@ func (al *AgentLoop) runLLMIteration(
 					"error":    err.Error(),
 				})
 		} else if wrapUpResponse != nil && wrapUpResponse.Content != "" {
-			finalContent = wrapUpResponse.Content
+			finalContent = stripThinkTags(wrapUpResponse.Content)
 		}
 	}
 
@@ -1093,7 +1094,7 @@ func (al *AgentLoop) summarizeSession(agent *AgentInstance, sessionKey string) {
 			},
 		)
 		if err == nil {
-			finalSummary = resp.Content
+			finalSummary = stripThinkTags(resp.Content)
 		} else {
 			finalSummary = s1 + " " + s2
 		}
@@ -1145,7 +1146,16 @@ func (al *AgentLoop) summarizeBatch(
 	if err != nil {
 		return "", err
 	}
-	return response.Content, nil
+	return stripThinkTags(response.Content), nil
+}
+
+// thinkTagRe matches <think>...</think> blocks (including multiline content).
+var thinkTagRe = regexp.MustCompile(`(?s)<think>.*?</think>`)
+
+// stripThinkTags removes <think>...</think> reasoning blocks from LLM responses.
+// Models like DeepSeek and MiniMax wrap chain-of-thought in these tags.
+func stripThinkTags(content string) string {
+	return strings.TrimSpace(thinkTagRe.ReplaceAllString(content, ""))
 }
 
 // estimateTokens estimates the number of tokens in a message list.

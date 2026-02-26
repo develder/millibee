@@ -973,6 +973,60 @@ func (m *failFirstMockProvider) GetDefaultModel() string {
 	return "mock-fail-model"
 }
 
+// TestStripThinkTags verifies removal of <think>...</think> blocks from LLM responses.
+func TestStripThinkTags(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "basic think block before answer",
+			input: "<think>\nThe user wants to pull changes.\n</think>\nDe laatste wijzigingen zijn gepullt.",
+			want:  "De laatste wijzigingen zijn gepullt.",
+		},
+		{
+			name:  "no think tags",
+			input: "Gewoon een antwoord zonder think tags.",
+			want:  "Gewoon een antwoord zonder think tags.",
+		},
+		{
+			name:  "only think block, no answer",
+			input: "<think>reasoning only</think>",
+			want:  "",
+		},
+		{
+			name:  "multiple think blocks",
+			input: "<think>first</think>Hello <think>second</think>world",
+			want:  "Hello world",
+		},
+		{
+			name:  "multiline think block",
+			input: "<think>\nline1\nline2\nline3\n</think>\nResult here",
+			want:  "Result here",
+		},
+		{
+			name:  "empty input",
+			input: "",
+			want:  "",
+		},
+		{
+			name:  "think tags with content after",
+			input: "<think>I need to check the git status first and then pull.</think>Ik heb de wijzigingen gepullt van origin/main.",
+			want:  "Ik heb de wijzigingen gepullt van origin/main.",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := stripThinkTags(tt.input)
+			if got != tt.want {
+				t.Errorf("stripThinkTags() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 // TestAgentLoop_ContextExhaustionRetry verify that the agent retries on context errors
 func TestAgentLoop_ContextExhaustionRetry(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "agent-test-*")
