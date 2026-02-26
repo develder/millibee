@@ -1,13 +1,12 @@
-env_file:
-  - path: .env
-    required: false
-
 services:
   # ─────────────────────────────────────────────
   # MilliBee Agent (one-shot query)
   #   docker compose run --rm millibee-agent -m "Hello"
   # ─────────────────────────────────────────────
   millibee-agent:
+    env_file:
+      - path: .env
+        required: false
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -19,7 +18,7 @@ services:
     volumes:
       - ../config/config.json:/home/millibee/.millibee/config.json:ro
       - millibee-workspace:/home/millibee/.millibee/workspace
-      # Memory vault: bind mount zodat het buiten de container beschikbaar is
+      # Memory vault: bind mount so it's accessible outside the container
       - ${MEMORY_VAULT_PATH:-../data/memory}:/home/millibee/.millibee/workspace/memory
     environment:
       - CRAWL4AI_BASE_URL=http://crawl4ai:11235
@@ -34,6 +33,9 @@ services:
   #   docker compose up millibee-gateway
   # ─────────────────────────────────────────────
   millibee-gateway:
+    env_file:
+      - path: .env
+        required: false
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -46,7 +48,7 @@ services:
     volumes:
       - ../config/config.json:/home/millibee/.millibee/config.json:ro
       - millibee-workspace:/home/millibee/.millibee/workspace
-      # Memory vault: bind mount zodat het buiten de container beschikbaar is
+      # Memory vault: bind mount so it's accessible outside the container
       - ${MEMORY_VAULT_PATH:-../data/memory}:/home/millibee/.millibee/workspace/memory
     ports:
       - "${SSH_HOST_PORT:-2222}:2222"
@@ -63,20 +65,23 @@ services:
   #   Playground: http://localhost:11235/playground
   # ─────────────────────────────────────────────
   crawl4ai:
+    env_file:
+      - path: .env
+        required: false
     image: unclecode/crawl4ai:latest
     container_name: crawl4ai
     restart: unless-stopped
     networks:
       - millibee-net
     ports:
-      # Optioneel: expose op host voor debugging / playground
+      # Optional: expose on host for debugging / playground
       - "${CRAWL4AI_HOST_PORT:-11235}:11235"
     environment:
       - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:-}
       - MAX_CONCURRENT_TASKS=${CRAWL4AI_MAX_CONCURRENT:-5}
     volumes:
       - crawl4ai-data:/root/.crawl4ai
-    # Chromium heeft shared memory nodig
+    # Chromium needs shared memory
     shm_size: '1gb'
 
   # ─────────────────────────────────────────────
@@ -85,6 +90,9 @@ services:
   #   API: http://yt-transcript:8000
   # ─────────────────────────────────────────────
   yt-transcript:
+    env_file:
+      - path: .env
+        required: false
     image: yoanbernabeu/youtubetranscriptapi:latest
     container_name: yt-transcript
     restart: unless-stopped
@@ -100,6 +108,9 @@ services:
   #   Docs: http://localhost:9000/docs
   # ─────────────────────────────────────────────
   whisper-asr:
+    env_file:
+      - path: .env
+        required: false
     image: onerahmet/openai-whisper-asr-webservice:latest
     container_name: whisper-asr
     restart: unless-stopped
