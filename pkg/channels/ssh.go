@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -64,9 +66,13 @@ func (c *SSHChannel) Start(ctx context.Context) error {
 		),
 	}
 
-	if c.sshConfig.HostKeyPath != "" {
-		opts = append(opts, wish.WithHostKeyPath(c.sshConfig.HostKeyPath))
+	hostKeyPath := c.sshConfig.HostKeyPath
+	if hostKeyPath == "" {
+		// Default to a writable location inside the config directory
+		homeDir, _ := os.UserHomeDir()
+		hostKeyPath = filepath.Join(homeDir, ".millibee", "ssh_host_key")
 	}
+	opts = append(opts, wish.WithHostKeyPath(hostKeyPath))
 
 	if c.hasPasswordAuth() {
 		opts = append(opts, wish.WithPasswordAuth(func(_ ssh.Context, password string) bool {

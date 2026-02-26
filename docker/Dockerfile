@@ -45,5 +45,7 @@ RUN /usr/local/bin/millibee onboard
 # The entrypoint script syncs these into the workspace on startup.
 RUN cp -r /home/millibee/.millibee/workspace/skills /home/millibee/.millibee/_builtin_skills
 
+WORKDIR /home/millibee
+
 ENTRYPOINT ["entrypoint.sh"]
 CMD ["gateway"]
