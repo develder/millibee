@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/develder/millibee/pkg/providers"
+	"github.com/stretchr/testify/assert"
 )
 
 // --- mock types ---
@@ -347,4 +348,37 @@ func TestToolRegistry_ConcurrentAccess(t *testing.T) {
 	if r.Count() == 0 {
 		t.Error("expected tools to be registered after concurrent access")
 	}
+}
+
+func TestToolRegistry_ToProviderDefsFiltered(t *testing.T) {
+	r := NewToolRegistry()
+	r.Register(newMockTool("read_file", "Read a file"))    // core
+	r.Register(newMockTool("exec", "Execute command"))      // core
+	r.Register(newMockTool("git_status", "Git status"))     // git
+	r.Register(newMockTool("git_commit", "Git commit"))     // git
+	r.Register(newMockTool("web_fetch", "Fetch URL"))       // web
+	r.Register(newMockTool("i2c", "I2C bus"))               // hardware
+
+	// Only core group active
+	coreOnly := map[string]bool{"core": true}
+	defs := r.ToProviderDefsFiltered(coreOnly)
+	assert.Len(t, defs, 2, "core-only should include read_file and exec")
+
+	// Core + git active
+	coreGit := map[string]bool{"core": true, "git": true}
+	defs = r.ToProviderDefsFiltered(coreGit)
+	assert.Len(t, defs, 4, "core+git should include 4 tools")
+
+	// All groups active
+	all := map[string]bool{"core": true, "git": true, "web": true, "hardware": true}
+	defs = r.ToProviderDefsFiltered(all)
+	assert.Len(t, defs, 6, "all groups should include all 6 tools")
+}
+
+func TestToolRegistry_ToProviderDefsFiltered_EmptyGroups(t *testing.T) {
+	r := NewToolRegistry()
+	r.Register(newMockTool("read_file", "Read"))
+
+	defs := r.ToProviderDefsFiltered(map[string]bool{})
+	assert.Len(t, defs, 0, "empty groups should return no tools")
 }

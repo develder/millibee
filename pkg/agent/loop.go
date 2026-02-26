@@ -542,6 +542,7 @@ func (al *AgentLoop) runLLMIteration(
 ) (string, int, error) {
 	iteration := 0
 	var finalContent string
+	var usedToolNames []string
 
 	for iteration < agent.MaxIterations {
 		iteration++
@@ -577,8 +578,21 @@ func (al *AgentLoop) runLLMIteration(
 				})
 		}
 
-		// Build tool definitions
-		providerToolDefs := agent.Tools.ToProviderDefs()
+		// Build tool definitions (filtered by active groups)
+		activeGroups := tools.SelectActiveGroups(opts.UserMessage, usedToolNames)
+		providerToolDefs := agent.Tools.ToProviderDefsFiltered(activeGroups)
+
+		// Log active groups for debugging
+		groupNames := make([]string, 0, len(activeGroups))
+		for g := range activeGroups {
+			groupNames = append(groupNames, g)
+		}
+		logger.DebugCF("agent", "Tool selection",
+			map[string]any{
+				"active_groups": groupNames,
+				"tools_total":   agent.Tools.Count(),
+				"tools_active":  len(providerToolDefs),
+			})
 
 		// Log LLM request details
 		logger.DebugCF("agent", "LLM request",
@@ -724,6 +738,7 @@ func (al *AgentLoop) runLLMIteration(
 		for _, tc := range normalizedToolCalls {
 			toolNames = append(toolNames, tc.Name)
 		}
+		usedToolNames = append(usedToolNames, toolNames...)
 		logger.InfoCF("agent", "LLM requested tool calls",
 			map[string]any{
 				"agent_id":  agent.ID,
