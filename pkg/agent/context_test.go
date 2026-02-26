@@ -203,3 +203,20 @@ func TestLoadBootstrapFiles_IgnoresNonBootstrapFiles(t *testing.T) {
 	assert.Contains(t, result, "soul")
 	assert.NotContains(t, result, "should not appear")
 }
+
+// --- System prompt tests ---
+
+func TestBuildSystemPrompt_NoToolSummaries(t *testing.T) {
+	workspace := t.TempDir()
+	// Create skills dir to avoid nil pointer in SkillsLoader
+	os.MkdirAll(filepath.Join(workspace, "skills"), 0o755)
+
+	cb := NewContextBuilder(workspace)
+	prompt := cb.BuildSystemPrompt()
+
+	// Tool summaries should NOT be in the system prompt (they come via API tool definitions)
+	assert.NotContains(t, prompt, "Available Tools")
+	assert.NotContains(t, prompt, "CRITICAL")
+	// But identity should still be there
+	assert.Contains(t, prompt, "millibee")
+}
