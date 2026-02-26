@@ -57,7 +57,7 @@ func TestGitStatus_Clean(t *testing.T) {
 	// Make an initial commit so the repo is not empty
 	commitFile(t, dir, "init.txt", "init", "initial commit")
 
-	tool := NewGitStatusTool(dir)
+	tool := NewGitStatusTool(dir, false)
 	assert.Equal(t, "git_status", tool.Name())
 	assert.NotEmpty(t, tool.Description())
 
@@ -79,7 +79,7 @@ func TestGitStatus_Modified(t *testing.T) {
 	err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("modified"), 0o644)
 	assert.NoError(t, err)
 
-	tool := NewGitStatusTool(dir)
+	tool := NewGitStatusTool(dir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{})
 
@@ -98,7 +98,7 @@ func TestGitDiff_Unstaged(t *testing.T) {
 	err := os.WriteFile(filepath.Join(dir, "hello.txt"), []byte("hello world\n"), 0o644)
 	assert.NoError(t, err)
 
-	tool := NewGitDiffTool(dir)
+	tool := NewGitDiffTool(dir, false)
 	assert.Equal(t, "git_diff", tool.Name())
 
 	ctx := context.Background()
@@ -124,7 +124,7 @@ func TestGitDiff_Staged(t *testing.T) {
 	out, err := cmd.CombinedOutput()
 	assert.NoError(t, err, "git add failed: %s", out)
 
-	tool := NewGitDiffTool(dir)
+	tool := NewGitDiffTool(dir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{
 		"staged": true,
@@ -144,7 +144,7 @@ func TestGitDiff_File(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "a.txt"), []byte("aaa modified\n"), 0o644)
 	os.WriteFile(filepath.Join(dir, "b.txt"), []byte("bbb modified\n"), 0o644)
 
-	tool := NewGitDiffTool(dir)
+	tool := NewGitDiffTool(dir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{
 		"staged": false,
@@ -163,7 +163,7 @@ func TestGitLog_Default(t *testing.T) {
 	commitFile(t, dir, "first.txt", "1", "first commit")
 	commitFile(t, dir, "second.txt", "2", "second commit")
 
-	tool := NewGitLogTool(dir)
+	tool := NewGitLogTool(dir, false)
 	assert.Equal(t, "git_log", tool.Name())
 
 	ctx := context.Background()
@@ -182,7 +182,7 @@ func TestGitLog_MaxCount(t *testing.T) {
 	commitFile(t, dir, "b.txt", "b", "commit beta")
 	commitFile(t, dir, "c.txt", "c", "commit gamma")
 
-	tool := NewGitLogTool(dir)
+	tool := NewGitLogTool(dir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{
 		"max_count": float64(1),
@@ -199,7 +199,7 @@ func TestGitLog_Oneline(t *testing.T) {
 	dir := setupGitRepo(t)
 	commitFile(t, dir, "a.txt", "a", "commit oneline test")
 
-	tool := NewGitLogTool(dir)
+	tool := NewGitLogTool(dir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{
 		"oneline": true,
@@ -218,7 +218,7 @@ func TestGitLog_File(t *testing.T) {
 	commitFile(t, dir, "other.txt", "v1", "add other")
 	commitFile(t, dir, "tracked.txt", "v2", "update tracked")
 
-	tool := NewGitLogTool(dir)
+	tool := NewGitLogTool(dir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{
 		"file": "tracked.txt",
@@ -237,7 +237,7 @@ func TestGitShow_Default(t *testing.T) {
 	dir := setupGitRepo(t)
 	commitFile(t, dir, "show.txt", "show me", "commit to show")
 
-	tool := NewGitShowTool(dir)
+	tool := NewGitShowTool(dir, false)
 	assert.Equal(t, "git_show", tool.Name())
 
 	ctx := context.Background()
@@ -255,7 +255,7 @@ func TestGitShow_WithRef(t *testing.T) {
 	commitFile(t, dir, "first.txt", "first", "first for show")
 	commitFile(t, dir, "second.txt", "second", "second for show")
 
-	tool := NewGitShowTool(dir)
+	tool := NewGitShowTool(dir, false)
 	ctx := context.Background()
 	// Show HEAD~1 (the first commit)
 	result := tool.Execute(ctx, map[string]any{
@@ -274,7 +274,7 @@ func TestGitBranch_List(t *testing.T) {
 	// Need at least one commit for branches to exist
 	commitFile(t, dir, "init.txt", "init", "initial commit")
 
-	tool := NewGitBranchTool(dir)
+	tool := NewGitBranchTool(dir, false)
 	assert.Equal(t, "git_branch", tool.Name())
 
 	ctx := context.Background()
@@ -293,7 +293,7 @@ func TestGitBranch_Create(t *testing.T) {
 	dir := setupGitRepo(t)
 	commitFile(t, dir, "init.txt", "init", "initial commit")
 
-	tool := NewGitBranchTool(dir)
+	tool := NewGitBranchTool(dir, false)
 	ctx := context.Background()
 
 	// Create a new branch
@@ -327,7 +327,7 @@ func TestGitCommit_Success(t *testing.T) {
 	out, err := cmd.CombinedOutput()
 	assert.NoError(t, err, "git add failed: %s", out)
 
-	tool := NewGitCommitTool(dir)
+	tool := NewGitCommitTool(dir, false)
 	assert.Equal(t, "git_commit", tool.Name())
 
 	ctx := context.Background()
@@ -348,7 +348,7 @@ func TestGitCommit_Success(t *testing.T) {
 func TestGitCommit_NoMessage(t *testing.T) {
 	dir := setupGitRepo(t)
 
-	tool := NewGitCommitTool(dir)
+	tool := NewGitCommitTool(dir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{})
 
@@ -364,7 +364,7 @@ func TestGitCommit_WithFiles(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "auto1.txt"), []byte("auto1"), 0o644)
 	os.WriteFile(filepath.Join(dir, "auto2.txt"), []byte("auto2"), 0o644)
 
-	tool := NewGitCommitTool(dir)
+	tool := NewGitCommitTool(dir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{
 		"message": "commit with auto-stage",
@@ -392,7 +392,7 @@ func TestGitAdd_Files(t *testing.T) {
 	err := os.WriteFile(newFile, []byte("new content"), 0o644)
 	assert.NoError(t, err)
 
-	tool := NewGitAddTool(dir)
+	tool := NewGitAddTool(dir, false)
 	assert.Equal(t, "git_add", tool.Name())
 
 	ctx := context.Background()
@@ -417,7 +417,7 @@ func TestGitAdd_Files(t *testing.T) {
 func TestGitAdd_NoFiles(t *testing.T) {
 	dir := setupGitRepo(t)
 
-	tool := NewGitAddTool(dir)
+	tool := NewGitAddTool(dir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{})
 
@@ -446,7 +446,7 @@ func TestGitReset_Unstage(t *testing.T) {
 	beforeOut, _ := statusCmd.CombinedOutput()
 	assert.Contains(t, string(beforeOut), "A")
 
-	tool := NewGitResetTool(dir)
+	tool := NewGitResetTool(dir, false)
 	assert.Equal(t, "git_reset", tool.Name())
 
 	ctx := context.Background()
@@ -478,7 +478,7 @@ func TestGitReset_All(t *testing.T) {
 	addCmd.Dir = dir
 	addCmd.CombinedOutput()
 
-	tool := NewGitResetTool(dir)
+	tool := NewGitResetTool(dir, false)
 	ctx := context.Background()
 	// No files param = reset all
 	result := tool.Execute(ctx, map[string]any{})
@@ -506,7 +506,7 @@ func TestGitCheckout_Branch(t *testing.T) {
 	out, err := branchCmd.CombinedOutput()
 	assert.NoError(t, err, "git branch failed: %s", out)
 
-	tool := NewGitCheckoutTool(dir)
+	tool := NewGitCheckoutTool(dir, false)
 	assert.Equal(t, "git_checkout", tool.Name())
 
 	ctx := context.Background()
@@ -528,7 +528,7 @@ func TestGitCheckout_NoRef(t *testing.T) {
 	dir := setupGitRepo(t)
 	commitFile(t, dir, "init.txt", "init", "initial commit")
 
-	tool := NewGitCheckoutTool(dir)
+	tool := NewGitCheckoutTool(dir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{})
 
@@ -541,7 +541,7 @@ func TestGitPull_NoRemote(t *testing.T) {
 	dir := setupGitRepo(t)
 	commitFile(t, dir, "init.txt", "init", "initial commit")
 
-	tool := NewGitPullTool(dir)
+	tool := NewGitPullTool(dir, false)
 	assert.Equal(t, "git_pull", tool.Name())
 
 	ctx := context.Background()
@@ -564,7 +564,7 @@ func TestGitPull_WithRemote(t *testing.T) {
 	// Add a new commit to the remote
 	commitFile(t, remoteDir, "new.txt", "new", "remote commit")
 
-	tool := NewGitPullTool(localDir)
+	tool := NewGitPullTool(localDir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{})
 
@@ -590,7 +590,7 @@ func TestGitMerge_Success(t *testing.T) {
 	commitFile(t, dir, "feature.txt", "feature", "feature commit")
 	run("checkout", "master")
 
-	tool := NewGitMergeTool(dir)
+	tool := NewGitMergeTool(dir, false)
 	assert.Equal(t, "git_merge", tool.Name())
 
 	ctx := context.Background()
@@ -602,7 +602,7 @@ func TestGitMerge_Success(t *testing.T) {
 func TestGitMerge_NoBranch(t *testing.T) {
 	dir := setupGitRepo(t)
 
-	tool := NewGitMergeTool(dir)
+	tool := NewGitMergeTool(dir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{})
 
@@ -618,7 +618,7 @@ func TestGitStash_Push(t *testing.T) {
 	// Modify a tracked file
 	os.WriteFile(filepath.Join(dir, "init.txt"), []byte("modified"), 0o644)
 
-	tool := NewGitStashTool(dir)
+	tool := NewGitStashTool(dir, false)
 	assert.Equal(t, "git_stash", tool.Name())
 	assert.NotEmpty(t, tool.Description())
 
@@ -643,7 +643,7 @@ func TestGitStash_PushWithMessage(t *testing.T) {
 
 	os.WriteFile(filepath.Join(dir, "init.txt"), []byte("modified"), 0o644)
 
-	tool := NewGitStashTool(dir)
+	tool := NewGitStashTool(dir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{
 		"action":  "push",
@@ -669,7 +669,7 @@ func TestGitStash_List(t *testing.T) {
 	stashCmd.Dir = dir
 	stashCmd.CombinedOutput()
 
-	tool := NewGitStashTool(dir)
+	tool := NewGitStashTool(dir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{
 		"action": "list",
@@ -683,7 +683,7 @@ func TestGitStash_ListEmpty(t *testing.T) {
 	dir := setupGitRepo(t)
 	commitFile(t, dir, "init.txt", "init", "initial commit")
 
-	tool := NewGitStashTool(dir)
+	tool := NewGitStashTool(dir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{
 		"action": "list",
@@ -703,7 +703,7 @@ func TestGitStash_Pop(t *testing.T) {
 	stashCmd.Dir = dir
 	stashCmd.CombinedOutput()
 
-	tool := NewGitStashTool(dir)
+	tool := NewGitStashTool(dir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{
 		"action": "pop",
@@ -719,7 +719,7 @@ func TestGitStash_Pop(t *testing.T) {
 func TestGitStash_InvalidAction(t *testing.T) {
 	dir := setupGitRepo(t)
 
-	tool := NewGitStashTool(dir)
+	tool := NewGitStashTool(dir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{
 		"action": "invalid",
@@ -731,7 +731,7 @@ func TestGitStash_InvalidAction(t *testing.T) {
 func TestGitStash_NoAction(t *testing.T) {
 	dir := setupGitRepo(t)
 
-	tool := NewGitStashTool(dir)
+	tool := NewGitStashTool(dir, false)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{})
 
@@ -747,7 +747,7 @@ func TestGitPush_Disabled(t *testing.T) {
 	dir := setupGitRepo(t)
 	commitFile(t, dir, "init.txt", "init", "initial commit")
 
-	tool := NewGitPushTool(dir, false)
+	tool := NewGitPushTool(dir, false, false)
 	assert.Equal(t, "git_push", tool.Name())
 
 	ctx := context.Background()
@@ -762,7 +762,7 @@ func TestGitPush_Enabled(t *testing.T) {
 	dir := setupGitRepo(t)
 	commitFile(t, dir, "init.txt", "init", "initial commit")
 
-	tool := NewGitPushTool(dir, true)
+	tool := NewGitPushTool(dir, true, true)
 	ctx := context.Background()
 	result := tool.Execute(ctx, map[string]any{})
 
@@ -772,4 +772,176 @@ func TestGitPush_Enabled(t *testing.T) {
 	assert.True(t, result.IsError, "expected error because no remote is configured")
 	assert.NotContains(t, strings.ToLower(result.ForLLM), "disabled",
 		"error should be from git (no remote), not from tool policy")
+}
+
+// --- repo parameter tests ---
+
+// setupGitRepoInSubdir creates a workspace with a git repo in a subdirectory.
+func setupGitRepoInSubdir(t *testing.T, subdir string) (workspace string, repoDir string) {
+	t.Helper()
+	workspace = t.TempDir()
+	repoDir = filepath.Join(workspace, subdir)
+	err := os.MkdirAll(repoDir, 0o755)
+	if err != nil {
+		t.Fatalf("mkdir %s: %v", subdir, err)
+	}
+	run := func(args ...string) {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = repoDir
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %v failed: %v\n%s", args, err, out)
+		}
+	}
+	run("init")
+	run("config", "user.email", "test@test.com")
+	run("config", "user.name", "Test")
+	return workspace, repoDir
+}
+
+func TestGitStatus_WithRepo(t *testing.T) {
+	workspace, repoDir := setupGitRepoInSubdir(t, "projects/myrepo")
+	commitFile(t, repoDir, "init.txt", "init", "initial commit")
+
+	tool := NewGitStatusTool(workspace, true)
+	ctx := context.Background()
+	result := tool.Execute(ctx, map[string]any{
+		"repo": "projects/myrepo",
+	})
+
+	assert.False(t, result.IsError, "expected no error, got: %s", result.ForLLM)
+	assert.True(t,
+		strings.Contains(result.ForLLM, "nothing to commit") ||
+			strings.Contains(result.ForLLM, "clean"),
+		"expected clean status, got: %s", result.ForLLM)
+}
+
+func TestGitStatus_WithRepo_OutsideWorkspace(t *testing.T) {
+	workspace := t.TempDir()
+	outsideDir := t.TempDir()
+
+	tool := NewGitStatusTool(workspace, true)
+	ctx := context.Background()
+	result := tool.Execute(ctx, map[string]any{
+		"repo": outsideDir,
+	})
+
+	assert.True(t, result.IsError, "expected error for repo outside workspace")
+	assert.Contains(t, result.ForLLM, "outside the workspace")
+}
+
+func TestGitStatus_WithRepo_PathTraversal(t *testing.T) {
+	workspace := t.TempDir()
+
+	tool := NewGitStatusTool(workspace, true)
+	ctx := context.Background()
+	result := tool.Execute(ctx, map[string]any{
+		"repo": "../../../etc",
+	})
+
+	assert.True(t, result.IsError, "expected error for path traversal")
+	assert.Contains(t, result.ForLLM, "outside the workspace")
+}
+
+func TestGitStatus_WithoutRepo_BackwardsCompatible(t *testing.T) {
+	dir := setupGitRepo(t)
+	commitFile(t, dir, "init.txt", "init", "initial commit")
+
+	// Without restrict (backwards compatible)
+	tool := NewGitStatusTool(dir, false)
+	ctx := context.Background()
+	result := tool.Execute(ctx, map[string]any{})
+
+	assert.False(t, result.IsError, "expected no error, got: %s", result.ForLLM)
+}
+
+func TestGitDiff_WithRepo(t *testing.T) {
+	workspace, repoDir := setupGitRepoInSubdir(t, "projects/myrepo")
+	commitFile(t, repoDir, "hello.txt", "hello\n", "add hello")
+	os.WriteFile(filepath.Join(repoDir, "hello.txt"), []byte("hello world\n"), 0o644)
+
+	tool := NewGitDiffTool(workspace, true)
+	ctx := context.Background()
+	result := tool.Execute(ctx, map[string]any{
+		"repo": "projects/myrepo",
+	})
+
+	assert.False(t, result.IsError, "expected no error, got: %s", result.ForLLM)
+	assert.Contains(t, result.ForLLM, "hello world")
+}
+
+func TestGitLog_WithRepo(t *testing.T) {
+	workspace, repoDir := setupGitRepoInSubdir(t, "projects/myrepo")
+	commitFile(t, repoDir, "first.txt", "1", "first commit")
+
+	tool := NewGitLogTool(workspace, true)
+	ctx := context.Background()
+	result := tool.Execute(ctx, map[string]any{
+		"repo": "projects/myrepo",
+	})
+
+	assert.False(t, result.IsError, "expected no error, got: %s", result.ForLLM)
+	assert.Contains(t, result.ForLLM, "first commit")
+}
+
+func TestGitPull_WithRepo(t *testing.T) {
+	// Create a "remote" repo
+	remoteDir := setupGitRepo(t)
+	commitFile(t, remoteDir, "init.txt", "init", "initial commit")
+
+	// Create workspace with clone in subdirectory
+	workspace := t.TempDir()
+	localDir := filepath.Join(workspace, "projects/myrepo")
+	cmd := exec.Command("git", "clone", remoteDir, localDir)
+	out, err := cmd.CombinedOutput()
+	assert.NoError(t, err, "git clone failed: %s", out)
+
+	// Add a new commit to the remote
+	commitFile(t, remoteDir, "new.txt", "new", "remote commit")
+
+	tool := NewGitPullTool(workspace, true)
+	ctx := context.Background()
+	result := tool.Execute(ctx, map[string]any{
+		"repo": "projects/myrepo",
+	})
+
+	assert.False(t, result.IsError, "expected no error, got: %s", result.ForLLM)
+}
+
+func TestGitCommit_WithRepo(t *testing.T) {
+	workspace, repoDir := setupGitRepoInSubdir(t, "projects/myrepo")
+	commitFile(t, repoDir, "init.txt", "init", "initial commit")
+
+	os.WriteFile(filepath.Join(repoDir, "new.txt"), []byte("new"), 0o644)
+
+	tool := NewGitCommitTool(workspace, true)
+	ctx := context.Background()
+	result := tool.Execute(ctx, map[string]any{
+		"message": "test commit via repo param",
+		"files":   []any{"new.txt"},
+		"repo":    "projects/myrepo",
+	})
+
+	assert.False(t, result.IsError, "expected no error, got: %s", result.ForLLM)
+
+	logCmd := exec.Command("git", "log", "--oneline", "-1")
+	logCmd.Dir = repoDir
+	logOut, err := logCmd.CombinedOutput()
+	assert.NoError(t, err)
+	assert.Contains(t, string(logOut), "test commit via repo param")
+}
+
+func TestGitStatus_WithRepo_UnrestrictedAllowsAbsolutePaths(t *testing.T) {
+	dir := setupGitRepo(t)
+	commitFile(t, dir, "init.txt", "init", "initial commit")
+
+	// With restrict=false, absolute paths outside workspace should work
+	workspace := t.TempDir()
+	tool := NewGitStatusTool(workspace, false)
+	ctx := context.Background()
+	result := tool.Execute(ctx, map[string]any{
+		"repo": dir,
+	})
+
+	assert.False(t, result.IsError, "expected no error with restrict=false, got: %s", result.ForLLM)
 }

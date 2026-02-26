@@ -63,19 +63,19 @@ func NewAgentInstance(
 	// Git tools
 	if cfg == nil || cfg.Tools.Git.Enabled {
 		allowPush := cfg != nil && cfg.Tools.Git.AllowPush
-		toolsRegistry.Register(tools.NewGitStatusTool(workspace))
-		toolsRegistry.Register(tools.NewGitDiffTool(workspace))
-		toolsRegistry.Register(tools.NewGitLogTool(workspace))
-		toolsRegistry.Register(tools.NewGitShowTool(workspace))
-		toolsRegistry.Register(tools.NewGitBranchTool(workspace))
-		toolsRegistry.Register(tools.NewGitCommitTool(workspace))
-		toolsRegistry.Register(tools.NewGitAddTool(workspace))
-		toolsRegistry.Register(tools.NewGitResetTool(workspace))
-		toolsRegistry.Register(tools.NewGitCheckoutTool(workspace))
-		toolsRegistry.Register(tools.NewGitPullTool(workspace))
-		toolsRegistry.Register(tools.NewGitMergeTool(workspace))
-		toolsRegistry.Register(tools.NewGitStashTool(workspace))
-		toolsRegistry.Register(tools.NewGitPushTool(workspace, allowPush))
+		toolsRegistry.Register(tools.NewGitStatusTool(workspace, restrict))
+		toolsRegistry.Register(tools.NewGitDiffTool(workspace, restrict))
+		toolsRegistry.Register(tools.NewGitLogTool(workspace, restrict))
+		toolsRegistry.Register(tools.NewGitShowTool(workspace, restrict))
+		toolsRegistry.Register(tools.NewGitBranchTool(workspace, restrict))
+		toolsRegistry.Register(tools.NewGitCommitTool(workspace, restrict))
+		toolsRegistry.Register(tools.NewGitAddTool(workspace, restrict))
+		toolsRegistry.Register(tools.NewGitResetTool(workspace, restrict))
+		toolsRegistry.Register(tools.NewGitCheckoutTool(workspace, restrict))
+		toolsRegistry.Register(tools.NewGitPullTool(workspace, restrict))
+		toolsRegistry.Register(tools.NewGitMergeTool(workspace, restrict))
+		toolsRegistry.Register(tools.NewGitStashTool(workspace, restrict))
+		toolsRegistry.Register(tools.NewGitPushTool(workspace, allowPush, restrict))
 	}
 
 	// Memory vault tools
