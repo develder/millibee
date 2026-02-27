@@ -12,6 +12,8 @@ Transcribe YouTube videos in two ways:
 
 Always try the Transcript API first. Only fall back to Whisper if no captions are available.
 
+Use the `web_fetch` tool for all HTTP requests (curl is not available).
+
 ## Step 1: Extract Video ID
 
 Extract the video ID from the YouTube URL:
@@ -22,26 +24,26 @@ Extract the video ID from the YouTube URL:
 
 ## Step 2: Try YouTube Transcript API (fast)
 
-```bash
-curl -s "${YT_TRANSCRIPT_URL:-http://yt-transcript:8000}/transcript?video_id=VIDEO_ID&language=en"
+```
+web_fetch(url="http://yt-transcript:8000/transcript?video_id=VIDEO_ID&language=en")
 ```
 
 With specific language:
 
-```bash
-curl -s "${YT_TRANSCRIPT_URL:-http://yt-transcript:8000}/transcript?video_id=VIDEO_ID&language=nl"
+```
+web_fetch(url="http://yt-transcript:8000/transcript?video_id=VIDEO_ID&language=nl")
 ```
 
 List available transcript languages for a video:
 
-```bash
-curl -s "${YT_TRANSCRIPT_URL:-http://yt-transcript:8000}/transcripts?video_id=VIDEO_ID"
+```
+web_fetch(url="http://yt-transcript:8000/transcripts?video_id=VIDEO_ID")
 ```
 
 Get transcript in SRT format:
 
-```bash
-curl -s "${YT_TRANSCRIPT_URL:-http://yt-transcript:8000}/transcript?video_id=VIDEO_ID&language=en&format=srt"
+```
+web_fetch(url="http://yt-transcript:8000/transcript?video_id=VIDEO_ID&language=en&format=srt")
 ```
 
 **Response** (JSON format):
@@ -56,15 +58,19 @@ If this returns an error (no captions available), proceed to Step 3.
 
 ## Step 3: Whisper ASR Fallback (speech-to-text)
 
-When no captions exist, download the audio and send it to Whisper ASR:
+When no captions exist, download the audio and send it to Whisper ASR via exec:
 
 ```bash
 # Download audio from YouTube using yt-dlp
 yt-dlp -x --audio-format mp3 -o /tmp/yt_audio.mp3 "https://www.youtube.com/watch?v=VIDEO_ID"
 
-# Transcribe with Whisper ASR
-curl -s -X POST "${WHISPER_ASR_URL:-http://whisper-asr:9000}/asr?output=json&language=en" \
-  -F "audio_file=@/tmp/yt_audio.mp3"
+# Transcribe with Whisper ASR (multipart upload via Python)
+python3 -c "
+import requests
+with open('/tmp/yt_audio.mp3', 'rb') as f:
+    r = requests.post('http://whisper-asr:9000/asr?output=json&language=en', files={'audio_file': f})
+    print(r.text)
+"
 
 # Clean up
 rm -f /tmp/yt_audio.mp3
@@ -73,18 +79,15 @@ rm -f /tmp/yt_audio.mp3
 With automatic language detection:
 
 ```bash
-curl -s -X POST "${WHISPER_ASR_URL:-http://whisper-asr:9000}/asr?output=json" \
-  -F "audio_file=@/tmp/yt_audio.mp3"
+python3 -c "
+import requests
+with open('/tmp/yt_audio.mp3', 'rb') as f:
+    r = requests.post('http://whisper-asr:9000/asr?output=json', files={'audio_file': f})
+    print(r.text)
+"
 ```
 
-**Output formats:** `txt`, `json`, `vtt`, `srt`, `tsv`
-
-**Whisper ASR can also transcribe any audio file** (not just YouTube):
-
-```bash
-curl -s -X POST "${WHISPER_ASR_URL:-http://whisper-asr:9000}/asr?output=txt&language=nl" \
-  -F "audio_file=@/path/to/audio.mp3"
-```
+**Output formats:** `txt`, `json`, `vtt`, `srt`, `tsv` (change `output=` parameter)
 
 ## Configuration
 

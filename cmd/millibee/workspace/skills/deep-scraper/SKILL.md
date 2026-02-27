@@ -9,20 +9,19 @@ Use the Crawl4AI service to scrape web pages rendered by a full headless browser
 
 The service is available at `${CRAWL4AI_BASE_URL}` (default: `http://crawl4ai:11235`).
 
+Use the `web_fetch` tool for all requests (curl is not available).
+
 ## Single Page Scrape
 
 Scrape a single URL and get Markdown content:
 
-```bash
-curl -s -X POST "${CRAWL4AI_BASE_URL:-http://crawl4ai:11235}/crawl" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "urls": ["https://example.com"],
-    "crawler_config": {
-      "type": "CrawlerRunConfig",
-      "params": {"cache_mode": "bypass"}
-    }
-  }'
+```
+web_fetch(
+  url="http://crawl4ai:11235/crawl",
+  method="POST",
+  headers={"Content-Type": "application/json"},
+  body='{"urls": ["https://example.com"], "crawler_config": {"type": "CrawlerRunConfig", "params": {"cache_mode": "bypass"}}}'
+)
 ```
 
 **Response** (relevant fields):
@@ -46,49 +45,30 @@ Use `fit_markdown` for concise content (noise removed) or `markdown` for the ful
 
 For a lightweight request that returns just the Markdown:
 
-```bash
-curl -s -X POST "${CRAWL4AI_BASE_URL:-http://crawl4ai:11235}/md" \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://example.com"}'
 ```
-
-## Screenshot
-
-Capture a full-page screenshot:
-
-```bash
-curl -s -X POST "${CRAWL4AI_BASE_URL:-http://crawl4ai:11235}/screenshot" \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://example.com"}' --output screenshot.png
+web_fetch(
+  url="http://crawl4ai:11235/md",
+  method="POST",
+  headers={"Content-Type": "application/json"},
+  body='{"url": "https://example.com"}'
+)
 ```
 
 ## Deep Scrape (Multi-page Crawl)
 
 Use the async job API for multi-page crawls:
 
-```bash
+```
 # Submit crawl job
-JOB=$(curl -s -X POST "${CRAWL4AI_BASE_URL:-http://crawl4ai:11235}/crawl/job" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "urls": ["https://docs.example.com"],
-    "crawler_config": {
-      "type": "CrawlerRunConfig",
-      "params": {
-        "cache_mode": "bypass",
-        "deep_crawl_strategy": {
-          "type": "BFSDeepCrawlStrategy",
-          "params": {"max_depth": 2, "max_pages": 10}
-        }
-      }
-    }
-  }')
+web_fetch(
+  url="http://crawl4ai:11235/crawl/job",
+  method="POST",
+  headers={"Content-Type": "application/json"},
+  body='{"urls": ["https://docs.example.com"], "crawler_config": {"type": "CrawlerRunConfig", "params": {"cache_mode": "bypass", "deep_crawl_strategy": {"type": "BFSDeepCrawlStrategy", "params": {"max_depth": 2, "max_pages": 10}}}}}'
+)
 
-# Extract task ID
-TASK_ID=$(echo "$JOB" | jq -r '.task_id')
-
-# Poll for results
-curl -s "${CRAWL4AI_BASE_URL:-http://crawl4ai:11235}/job/$TASK_ID"
+# Poll for results (extract task_id from response first)
+web_fetch(url="http://crawl4ai:11235/job/TASK_ID")
 ```
 
 **Parameters for deep crawl:**
@@ -99,13 +79,13 @@ curl -s "${CRAWL4AI_BASE_URL:-http://crawl4ai:11235}/job/$TASK_ID"
 
 Run custom JavaScript on a page before extraction:
 
-```bash
-curl -s -X POST "${CRAWL4AI_BASE_URL:-http://crawl4ai:11235}/execute_js" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "https://example.com/app",
-    "js_code": "document.querySelector(\"button.load-more\").click(); await new Promise(r => setTimeout(r, 2000));"
-  }'
+```
+web_fetch(
+  url="http://crawl4ai:11235/execute_js",
+  method="POST",
+  headers={"Content-Type": "application/json"},
+  body='{"url": "https://example.com/app", "js_code": "document.querySelector(\"button.load-more\").click();"}'
+)
 ```
 
 ## Configuration
