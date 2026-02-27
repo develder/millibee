@@ -152,6 +152,8 @@ func (c *SSHChannel) SendChunk(ctx context.Context, chatID string, chunk string)
 	ch, ok := c.streamChans[chatID]
 	c.sessionsMu.RUnlock()
 
+	fmt.Printf("[DEBUG] SendChunk chatID=%s registered=%v chunk=%q\n", chatID, ok, chunk) // TODO: remove
+
 	if !ok {
 		return nil
 	}
@@ -162,6 +164,7 @@ func (c *SSHChannel) SendChunk(ctx context.Context, chatID string, chunk string)
 	case <-ctx.Done():
 		return ctx.Err()
 	default:
+		fmt.Printf("[DEBUG] SendChunk DROPPED (buffer full) chatID=%s\n", chatID) // TODO: remove
 		return nil // non-blocking, drop chunk if buffer full
 	}
 }
