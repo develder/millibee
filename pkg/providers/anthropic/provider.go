@@ -257,7 +257,11 @@ func buildParams(
 					if tc.Name == "" {
 						continue // skip tool calls with empty names (produced by some providers)
 					}
-					blocks = append(blocks, anthropic.NewToolUseBlock(tc.ID, tc.Arguments, tc.Name))
+					args := tc.Arguments
+					if args == nil {
+						args = map[string]any{}
+					}
+					blocks = append(blocks, anthropic.NewToolUseBlock(tc.ID, args, tc.Name))
 				}
 				anthropicMessages = append(anthropicMessages, anthropic.NewAssistantMessage(blocks...))
 			} else {
