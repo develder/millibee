@@ -272,6 +272,12 @@ func (t *ExecTool) guardCommand(command, cwd string) string {
 
 	lower := strings.ToLower(cmd)
 
+	// Check HTTP tools first to give a helpful hint
+	httpToolPattern := regexp.MustCompile(`\b(curl|wget)\b`)
+	if httpToolPattern.MatchString(lower) {
+		return "Command blocked: curl/wget are not available. Use the web_fetch tool for HTTP requests instead."
+	}
+
 	for _, pattern := range t.denyPatterns {
 		if pattern.MatchString(lower) {
 			return "Command blocked by safety guard (dangerous pattern detected)"

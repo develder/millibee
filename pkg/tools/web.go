@@ -548,7 +548,7 @@ func (t *WebFetchTool) Name() string {
 }
 
 func (t *WebFetchTool) Description() string {
-	return "Fetch a URL and extract readable content (HTML to text). Use this to get weather info, news, articles, or any web content."
+	return "Make HTTP requests to any URL. This is the only HTTP tool available — curl and wget are not available, use this instead. Supports GET, POST, PUT, PATCH, DELETE with custom headers and body. Returns structured output with automatic HTML extraction. Use for weather APIs, web scraping, REST APIs, webhooks, or any HTTP request."
 }
 
 func (t *WebFetchTool) Parameters() map[string]any {

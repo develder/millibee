@@ -144,6 +144,16 @@ func TestShellTool_DangerousCommand(t *testing.T) {
 	}
 }
 
+// TestShellTool_CurlBlockedWithHint verifies curl/wget return a helpful web_fetch hint
+func TestShellTool_CurlBlockedWithHint(t *testing.T) {
+	tool := NewExecTool("", false)
+
+	for _, cmd := range []string{"curl https://example.com", "wget https://example.com"} {
+		result := tool.guardCommand(cmd, "")
+		assert.Contains(t, result, "web_fetch", "curl/wget block should hint at web_fetch: %s", cmd)
+	}
+}
+
 // TestShellTool_AllowsNormalCommands verifies useful commands are NOT blocked
 func TestShellTool_AllowsNormalCommands(t *testing.T) {
 	tool := NewExecTool("", false)
