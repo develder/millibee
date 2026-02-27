@@ -239,6 +239,7 @@ func (p *Provider) ChatStream(
 	options map[string]any,
 	onChunk func(chunk string),
 ) (*LLMResponse, error) {
+	fmt.Printf("[DEBUG] ChatStream called: model=%s apiBase=%s onChunk=%v\n", model, p.apiBase, onChunk != nil) // TODO: remove
 	if p.apiBase == "" {
 		return nil, fmt.Errorf("API base not configured")
 	}
@@ -306,6 +307,7 @@ func (p *Provider) ChatStream(
 		return nil, fmt.Errorf("API request failed:\n  Status: %d\n  Body:   %s", resp.StatusCode, string(body))
 	}
 
+	fmt.Printf("[DEBUG] ChatStream HTTP response: status=%d content-type=%s\n", resp.StatusCode, resp.Header.Get("Content-Type")) // TODO: remove
 	return parseSSEStream(resp.Body, onChunk)
 }
 
