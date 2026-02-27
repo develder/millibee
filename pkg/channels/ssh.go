@@ -340,6 +340,17 @@ func (m *sshModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyPgDown:
 			m.viewport.HalfViewDown()
 			return m, tea.Batch(cmds...)
+		case tea.KeyUp:
+			// Scroll viewport when waiting for response or textarea is empty
+			if m.processing || m.textarea.Value() == "" {
+				m.viewport.LineUp(3)
+				return m, tea.Batch(cmds...)
+			}
+		case tea.KeyDown:
+			if m.processing || m.textarea.Value() == "" {
+				m.viewport.LineDown(3)
+				return m, tea.Batch(cmds...)
+			}
 		case tea.KeyCtrlC:
 			m.channel.unregisterSession(m.chatID)
 			return m, tea.Quit
@@ -378,8 +389,10 @@ func (m *sshModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				Content: msg.chunk,
 			})
 		}
+		// During streaming: render without glamour for performance (avoids
+		// re-rendering partial markdown on every token, which looks janky over SSH).
 		if m.ready {
-			m.viewport.SetContent(m.renderMessages())
+			m.viewport.SetContent(m.renderMessagesRaw())
 			m.viewport.GotoBottom()
 		}
 		return m, listenStreamChunks(m.streamChan)
@@ -486,6 +499,26 @@ func (m *sshModel) renderMessages() string {
 				}
 			}
 			s += m.styles.Assistant.Render("Assistant:") + "\n" + rendered + "\n"
+		case "error":
+			s += m.styles.Error.Render(msg.Content) + "\n\n"
+		}
+	}
+	return s
+}
+
+// renderMessagesRaw renders messages without glamour markdown rendering.
+// Used during streaming to avoid re-rendering partial markdown on every token.
+func (m *sshModel) renderMessagesRaw() string {
+	if len(m.messages) == 0 {
+		return ""
+	}
+	var s string
+	for _, msg := range m.messages {
+		switch msg.Role {
+		case "user":
+			s += m.styles.User.Render("You: "+msg.Content) + "\n\n"
+		case "assistant":
+			s += m.styles.Assistant.Render("Assistant:") + "\n" + msg.Content + "\n"
 		case "error":
 			s += m.styles.Error.Render(msg.Content) + "\n\n"
 		}
