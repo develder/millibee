@@ -371,9 +371,9 @@ func TestShellTool_RestrictToWorkspace_BlocksUnsafePaths(t *testing.T) {
 	workspace := t.TempDir()
 	tool := NewExecTool(workspace, true)
 
-	// Use a path that's outside the workspace but not in the safe list.
-	// The guard checks the command string, not actual file existence.
-	unsafePath := filepath.Join(filepath.Dir(workspace), "secrets", "passwords.txt")
+	// Use a hardcoded path outside the workspace and outside the safe list.
+	// Avoids t.TempDir() which resolves to /tmp on Linux (which IS in the safe list).
+	unsafePath := "/notasafepath/secrets/passwords.txt"
 	result := tool.guardCommand("cat "+unsafePath, workspace)
 	assert.Contains(t, result, "blocked", "path outside workspace and safe list should be blocked")
 }
