@@ -77,6 +77,34 @@ func TestBuildParams_ToolCallMessage(t *testing.T) {
 	}
 }
 
+// TestBuildParams_NilToolArguments verifies that tool calls with nil Arguments
+// (produced when streaming is interrupted) are converted to empty map, not null.
+func TestBuildParams_NilToolArguments(t *testing.T) {
+	messages := []Message{
+		{Role: "user", Content: "call a tool"},
+		{
+			Role:    "assistant",
+			Content: "",
+			ToolCalls: []ToolCall{
+				{ID: "call_1", Name: "some_tool", Arguments: nil}, // nil — would crash Anthropic
+			},
+		},
+		{Role: "tool", Content: `{}`, ToolCallID: "call_1"},
+	}
+	params, err := buildParams(messages, nil, "claude-sonnet-4.6", map[string]any{})
+	if err != nil {
+		t.Fatalf("buildParams() error: %v", err)
+	}
+	assistantMsg := params.Messages[1]
+	for _, block := range assistantMsg.Content {
+		if block.OfToolUse != nil {
+			if block.OfToolUse.Input == nil {
+				t.Errorf("tool_use.input should not be nil — Anthropic requires a valid dictionary")
+			}
+		}
+	}
+}
+
 func TestBuildParams_WithTools(t *testing.T) {
 	tools := []ToolDefinition{
 		{
