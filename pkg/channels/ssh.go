@@ -284,9 +284,10 @@ type sshModel struct {
 	textarea        textarea.Model
 	viewport        viewport.Model
 	spinner         spinner.Model
-	processing      bool
-	streaming       bool              // true while receiving chunks
-	streamChan      <-chan string      // chunk channel for current stream
+	processing       bool
+	streaming        bool              // true while receiving chunks
+	streamChan       <-chan string      // chunk channel for current stream
+	streamChunkCount int               // chunks received; used for render throttling
 	width           int
 	height          int
 	ready           bool
@@ -305,10 +306,11 @@ func newSSHModel(ch *SSHChannel, username, chatID string, styles tui.Styles, out
 	sp.Spinner = spinner.Dot
 	sp.Style = styles.Spinner
 
-	gr, _ := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
-		glamour.WithWordWrap(80),
-	)
+	gr, err := glamour.NewTermRenderer(glamour.WithAutoStyle(), glamour.WithWordWrap(80))
+	if err != nil || gr == nil {
+		// AutoStyle failed (common over SSH) — fall back to dark theme
+		gr, _ = glamour.NewTermRenderer(glamour.WithStandardStyle("dark"), glamour.WithWordWrap(80))
+	}
 
 	return &sshModel{
 		channel:         ch,
@@ -389,9 +391,10 @@ func (m *sshModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				Content: msg.chunk,
 			})
 		}
-		// During streaming: render without glamour for performance (avoids
-		// re-rendering partial markdown on every token, which looks janky over SSH).
-		if m.ready {
+		m.streamChunkCount++
+		// Throttle: only re-render every 10 chunks to reduce SSH escape-sequence traffic.
+		// Streaming still happens per-token; the user sees updates every ~10 tokens.
+		if m.ready && m.streamChunkCount%10 == 1 {
 			m.viewport.SetContent(m.renderMessagesRaw())
 			m.viewport.GotoBottom()
 		}
@@ -465,6 +468,7 @@ func (m *sshModel) sendMessage() (*sshModel, tea.Cmd) {
 	m.textarea.Reset()
 	m.processing = true
 	m.streaming = true
+	m.streamChunkCount = 0
 
 	if m.ready {
 		m.viewport.SetContent(m.renderMessages())
