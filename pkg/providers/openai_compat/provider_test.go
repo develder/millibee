@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -270,6 +271,29 @@ func TestProviderChat_AcceptsNumericOptionTypes(t *testing.T) {
 	}
 	if requestBody["temperature"] != float64(1) {
 		t.Fatalf("temperature = %v, want 1", requestBody["temperature"])
+	}
+}
+
+// TestParseSSEStream_SkipsEmptyToolName verifies that tool calls with an empty name
+// (as produced by some providers like MiniMax) are dropped from the response.
+func TestParseSSEStream_SkipsEmptyToolName(t *testing.T) {
+	// SSE stream with one valid tool call and one with empty name
+	sseBody := `data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"","arguments":""}}]}}]}
+data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"x\":1}"}}]}}]}
+data: {"choices":[{"delta":{"tool_calls":[{"index":1,"id":"call_2","type":"function","function":{"name":"real_tool","arguments":""}}]}}]}
+data: {"choices":[{"delta":{"tool_calls":[{"index":1,"function":{"arguments":"{\"y\":2}"}}]}}]}
+data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}
+data: [DONE]
+`
+	resp, err := parseSSEStream(strings.NewReader(sseBody), nil)
+	if err != nil {
+		t.Fatalf("parseSSEStream error: %v", err)
+	}
+	if len(resp.ToolCalls) != 1 {
+		t.Fatalf("expected 1 tool call (empty name skipped), got %d: %+v", len(resp.ToolCalls), resp.ToolCalls)
+	}
+	if resp.ToolCalls[0].Name != "real_tool" {
+		t.Fatalf("expected tool name 'real_tool', got %q", resp.ToolCalls[0].Name)
 	}
 }
 

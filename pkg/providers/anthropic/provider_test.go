@@ -262,6 +262,41 @@ func TestProvider_ChatUsesTokenSource(t *testing.T) {
 	}
 }
 
+// TestBuildParams_SkipsEmptyToolName verifies that tool calls with empty names
+// (produced by providers like MiniMax) are dropped from the Anthropic message history.
+func TestBuildParams_SkipsEmptyToolName(t *testing.T) {
+	messages := []Message{
+		{Role: "user", Content: "What's the weather?"},
+		{
+			Role:    "assistant",
+			Content: "",
+			ToolCalls: []ToolCall{
+				{ID: "call_1", Name: "", Arguments: map[string]any{"x": 1}},       // empty name — should be skipped
+				{ID: "call_2", Name: "get_weather", Arguments: map[string]any{}},  // valid — should be kept
+			},
+		},
+		{Role: "tool", Content: `{"temp": 72}`, ToolCallID: "call_2"},
+	}
+	params, err := buildParams(messages, nil, "claude-sonnet-4.6", map[string]any{})
+	if err != nil {
+		t.Fatalf("buildParams() error: %v", err)
+	}
+	// Find the assistant message and verify it only has 1 tool_use block
+	assistantMsg := params.Messages[1]
+	toolUseCount := 0
+	for _, block := range assistantMsg.Content {
+		if block.OfToolUse != nil {
+			toolUseCount++
+			if block.OfToolUse.Name == "" {
+				t.Errorf("found tool_use block with empty name — should have been skipped")
+			}
+		}
+	}
+	if toolUseCount != 1 {
+		t.Fatalf("expected 1 tool_use block (empty name skipped), got %d", toolUseCount)
+	}
+}
+
 func createAnthropicTestClient(baseURL, token string) *anthropic.Client {
 	c := anthropic.NewClient(
 		anthropicoption.WithAuthToken(token),
