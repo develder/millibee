@@ -152,7 +152,6 @@ func (p *Provider) ChatStream(
 			case "text_delta":
 				if delta.Text != "" {
 					content.WriteString(delta.Text)
-					fmt.Printf("[DEBUG] anthropic chunk: %d chars total=%d\n", len(delta.Text), content.Len()) // TODO: rm
 					if onChunk != nil {
 						onChunk(delta.Text)
 					}
@@ -286,6 +285,12 @@ func buildParams(
 		Model:     anthropic.Model(model),
 		Messages:  anthropicMessages,
 		MaxTokens: maxTokens,
+		// Disable extended thinking: it blocks streaming for minutes before any text appears.
+		Thinking: anthropic.ThinkingConfigParamUnion{
+			OfDisabled: &anthropic.ThinkingConfigDisabledParam{
+				Type: "disabled",
+			},
+		},
 	}
 
 	if len(system) > 0 {
