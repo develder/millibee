@@ -152,6 +152,7 @@ func (p *Provider) ChatStream(
 			case "text_delta":
 				if delta.Text != "" {
 					content.WriteString(delta.Text)
+					fmt.Printf("[DEBUG] anthropic chunk: %d chars total=%d\n", len(delta.Text), content.Len()) // TODO: rm
 					if onChunk != nil {
 						onChunk(delta.Text)
 					}
