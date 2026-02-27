@@ -42,9 +42,9 @@ var defaultDenyPatterns = []*regexp.Regexp{
 	// Fork bomb
 	regexp.MustCompile(`:\(\)\s*\{.*\};\s*:`),
 
-	// Remote code execution via pipe
-	regexp.MustCompile(`\bcurl\b.*\|\s*(sh|bash)`),
-	regexp.MustCompile(`\bwget\b.*\|\s*(sh|bash)`),
+	// HTTP tools — use web_fetch tool instead
+	regexp.MustCompile(`\bcurl\b`),
+	regexp.MustCompile(`\bwget\b`),
 
 	// Git force push (data loss)
 	regexp.MustCompile(`\bgit\s+push\s+.*--force\b`),
@@ -58,27 +58,15 @@ func NewExecTool(workingDir string, restrict bool) *ExecTool {
 func NewExecToolWithConfig(workingDir string, restrict bool, config *config.Config) *ExecTool {
 	denyPatterns := make([]*regexp.Regexp, 0)
 
-	enableDenyPatterns := true
-	if config != nil {
-		execConfig := config.Tools.Exec
-		enableDenyPatterns = execConfig.EnableDenyPatterns
-		if enableDenyPatterns {
-			if len(execConfig.CustomDenyPatterns) > 0 {
-				fmt.Printf("Using custom deny patterns: %v\n", execConfig.CustomDenyPatterns)
-				for _, pattern := range execConfig.CustomDenyPatterns {
-					re, err := regexp.Compile(pattern)
-					if err != nil {
-						fmt.Printf("Invalid custom deny pattern %q: %v\n", pattern, err)
-						continue
-					}
-					denyPatterns = append(denyPatterns, re)
-				}
-			} else {
-				denyPatterns = append(denyPatterns, defaultDenyPatterns...)
+	if config != nil && len(config.Tools.Exec.CustomDenyPatterns) > 0 {
+		fmt.Printf("Using custom deny patterns: %v\n", config.Tools.Exec.CustomDenyPatterns)
+		for _, pattern := range config.Tools.Exec.CustomDenyPatterns {
+			re, err := regexp.Compile(pattern)
+			if err != nil {
+				fmt.Printf("Invalid custom deny pattern %q: %v\n", pattern, err)
+				continue
 			}
-		} else {
-			// If deny patterns are disabled, we won't add any patterns, allowing all commands.
-			fmt.Println("Warning: deny patterns are disabled. All commands will be allowed.")
+			denyPatterns = append(denyPatterns, re)
 		}
 	} else {
 		denyPatterns = append(denyPatterns, defaultDenyPatterns...)
@@ -314,8 +302,12 @@ func (t *ExecTool) guardCommand(command, cwd string) string {
 			return ""
 		}
 
+		// Strip URLs before path checking to avoid matching URL path components as filesystem paths
+		urlPattern := regexp.MustCompile(`https?://\S+|ftp://\S+`)
+		cmdForPathCheck := urlPattern.ReplaceAllString(cmd, "")
+
 		pathPattern := regexp.MustCompile(`[A-Za-z]:[\\\/][^\s\"']+|/[^\s\"']+`)
-		matches := pathPattern.FindAllString(cmd, -1)
+		matches := pathPattern.FindAllString(cmdForPathCheck, -1)
 
 		for _, raw := range matches {
 			// Skip safe well-known paths that are read-only system locations

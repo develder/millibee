@@ -559,6 +559,25 @@ func (t *WebFetchTool) Parameters() map[string]any {
 				"type":        "string",
 				"description": "URL to fetch",
 			},
+			"method": map[string]any{
+				"type":        "string",
+				"description": "HTTP method (default: GET). Supported: GET, POST, PUT, PATCH, DELETE, HEAD",
+				"default":     "GET",
+			},
+			"headers": map[string]any{
+				"type":                 "object",
+				"description":          "Optional HTTP headers to include in the request",
+				"additionalProperties": map[string]any{"type": "string"},
+			},
+			"body": map[string]any{
+				"type":        "string",
+				"description": "Optional request body (for POST/PUT/PATCH)",
+			},
+			"raw": map[string]any{
+				"type":        "boolean",
+				"description": "Return raw response body without HTML extraction (default: false)",
+				"default":     false,
+			},
 			"maxChars": map[string]any{
 				"type":        "integer",
 				"description": "Maximum characters to extract",
@@ -602,12 +621,32 @@ func (t *WebFetchTool) Execute(ctx context.Context, args map[string]any) *ToolRe
 		}
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
+	method := "GET"
+	if m, ok := args["method"].(string); ok && m != "" {
+		method = strings.ToUpper(m)
+	}
+
+	var bodyReader io.Reader
+	if bodyStr, ok := args["body"].(string); ok && bodyStr != "" {
+		bodyReader = strings.NewReader(bodyStr)
+	}
+
+	rawOutput, _ := args["raw"].(bool)
+
+	req, err := http.NewRequestWithContext(ctx, method, urlStr, bodyReader)
 	if err != nil {
 		return ErrorResult(fmt.Sprintf("failed to create request: %v", err))
 	}
 
 	req.Header.Set("User-Agent", userAgent)
+
+	if hdrs, ok := args["headers"].(map[string]any); ok {
+		for k, v := range hdrs {
+			if vs, ok := v.(string); ok {
+				req.Header.Set(k, vs)
+			}
+		}
+	}
 
 	transport := &http.Transport{
 		MaxIdleConns:        10,
@@ -661,7 +700,10 @@ func (t *WebFetchTool) Execute(ctx context.Context, args map[string]any) *ToolRe
 
 	var text, extractor string
 
-	if strings.Contains(contentType, "application/json") {
+	if rawOutput {
+		text = string(body)
+		extractor = "raw"
+	} else if strings.Contains(contentType, "application/json") {
 		var jsonData any
 		if err := json.Unmarshal(body, &jsonData); err == nil {
 			formatted, _ := json.MarshalIndent(jsonData, "", "  ")

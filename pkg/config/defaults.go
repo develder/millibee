@@ -237,8 +237,7 @@ func DefaultConfig() *Config {
 				ExecTimeoutMinutes: 5,
 			},
 			Exec: ExecConfig{
-				EnableDenyPatterns: true,
-				MaxCommandLength:   10000,
+				MaxCommandLength: 10000,
 			},
 			Security: SecurityConfig{
 				DefaultMaxArgSize: 100000,

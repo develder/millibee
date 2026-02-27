@@ -590,3 +590,110 @@ func TestWebFetch_SSRF_AllowsPublicWithSkip(t *testing.T) {
 	result := tool.Execute(context.Background(), map[string]any{"url": server.URL})
 	assert.False(t, result.IsError, "skipSSRFCheck should allow localhost: %s", result.ForLLM)
 }
+
+// TestWebFetchTool_PostMethod verifies that POST with body is sent correctly
+func TestWebFetchTool_PostMethod(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("Expected POST, got %s", r.Method)
+		}
+		body := make([]byte, r.ContentLength)
+		r.Body.Read(body)
+		if !strings.Contains(string(body), "hello") {
+			t.Errorf("Expected body to contain 'hello', got: %s", body)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"received":true}`))
+	}))
+	defer server.Close()
+
+	tool := &WebFetchTool{maxChars: 50000, skipSSRFCheck: true}
+	result := tool.Execute(context.Background(), map[string]any{
+		"url":    server.URL,
+		"method": "POST",
+		"body":   `{"message":"hello"}`,
+	})
+
+	assert.False(t, result.IsError, "POST should succeed: %s", result.ForLLM)
+	assert.Contains(t, result.ForUser, "received")
+}
+
+// TestWebFetchTool_CustomHeaders verifies that custom headers are sent
+func TestWebFetchTool_CustomHeaders(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Custom-Header") != "test-value" {
+			t.Errorf("Expected X-Custom-Header: test-value, got: %s", r.Header.Get("X-Custom-Header"))
+		}
+		if r.Header.Get("Authorization") != "Bearer secret" {
+			t.Errorf("Expected Authorization: Bearer secret, got: %s", r.Header.Get("Authorization"))
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	}))
+	defer server.Close()
+
+	tool := &WebFetchTool{maxChars: 50000, skipSSRFCheck: true}
+	result := tool.Execute(context.Background(), map[string]any{
+		"url": server.URL,
+		"headers": map[string]any{
+			"X-Custom-Header": "test-value",
+			"Authorization":   "Bearer secret",
+		},
+	})
+
+	assert.False(t, result.IsError, "Custom headers should work: %s", result.ForLLM)
+}
+
+// TestWebFetchTool_RawOutput verifies that raw=true skips HTML extraction
+func TestWebFetchTool_RawOutput(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("<html><body><h1>Title</h1></body></html>"))
+	}))
+	defer server.Close()
+
+	tool := &WebFetchTool{maxChars: 50000, skipSSRFCheck: true}
+	result := tool.Execute(context.Background(), map[string]any{
+		"url": server.URL,
+		"raw": true,
+	})
+
+	assert.False(t, result.IsError, "raw fetch should succeed: %s", result.ForLLM)
+	// Raw output should use raw extractor (HTML tags not stripped), not "text" extractor
+	assert.Contains(t, result.ForUser, `"extractor": "raw"`)
+	assert.NotContains(t, result.ForUser, `"extractor": "text"`)
+}
+
+// TestWebFetchTool_DeleteMethod verifies that DELETE method works
+func TestWebFetchTool_DeleteMethod(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" {
+			t.Errorf("Expected DELETE, got %s", r.Method)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	tool := &WebFetchTool{maxChars: 50000, skipSSRFCheck: true}
+	result := tool.Execute(context.Background(), map[string]any{
+		"url":    server.URL,
+		"method": "DELETE",
+	})
+
+	assert.False(t, result.IsError, "DELETE should succeed: %s", result.ForLLM)
+}
+
+// TestWebFetchTool_PostSSRFStillBlocked verifies SSRF protection applies to POST requests
+func TestWebFetchTool_PostSSRFStillBlocked(t *testing.T) {
+	tool := NewWebFetchTool(50000, nil) // SSRF check enabled
+	result := tool.Execute(context.Background(), map[string]any{
+		"url":    "http://127.0.0.1:8080/admin",
+		"method": "POST",
+		"body":   "data",
+	})
+
+	assert.True(t, result.IsError, "POST to private IP should be blocked")
+	assert.Contains(t, result.ForLLM, "blocked")
+}
