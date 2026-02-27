@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -696,4 +697,22 @@ func TestWebFetchTool_PostSSRFStillBlocked(t *testing.T) {
 
 	assert.True(t, result.IsError, "POST to private IP should be blocked")
 	assert.Contains(t, result.ForLLM, "blocked")
+}
+
+// TestWebFetchTool_Timeout_Custom verifies that a custom timeout is respected
+func TestWebFetchTool_Timeout_Custom(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(2 * time.Second) // slow server
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	tool := &WebFetchTool{maxChars: 50000, skipSSRFCheck: true}
+	result := tool.Execute(context.Background(), map[string]any{
+		"url":     server.URL,
+		"timeout": float64(1), // 1 second → should time out before 2s sleep
+	})
+
+	assert.True(t, result.IsError, "should time out after 1s")
+	assert.Contains(t, result.ForLLM, "request failed")
 }

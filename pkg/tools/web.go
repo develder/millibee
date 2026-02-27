@@ -578,6 +578,13 @@ func (t *WebFetchTool) Parameters() map[string]any {
 				"description": "Return raw response body without HTML extraction (default: false)",
 				"default":     false,
 			},
+			"timeout": map[string]any{
+				"type":        "integer",
+				"description": "Request timeout in seconds (default: 15, max: 60)",
+				"default":     15,
+				"minimum":     1.0,
+				"maximum":     60.0,
+			},
 			"maxChars": map[string]any{
 				"type":        "integer",
 				"description": "Maximum characters to extract",
@@ -633,6 +640,11 @@ func (t *WebFetchTool) Execute(ctx context.Context, args map[string]any) *ToolRe
 
 	rawOutput, _ := args["raw"].(bool)
 
+	timeout := 15 * time.Second
+	if ts, ok := args["timeout"].(float64); ok && ts >= 1 && ts <= 60 {
+		timeout = time.Duration(ts) * time.Second
+	}
+
 	req, err := http.NewRequestWithContext(ctx, method, urlStr, bodyReader)
 	if err != nil {
 		return ErrorResult(fmt.Sprintf("failed to create request: %v", err))
@@ -675,7 +687,7 @@ func (t *WebFetchTool) Execute(ctx context.Context, args map[string]any) *ToolRe
 		}
 	}
 	client := &http.Client{
-		Timeout:   60 * time.Second,
+		Timeout:   timeout,
 		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= 5 {
