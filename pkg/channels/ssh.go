@@ -334,6 +334,12 @@ func (m *sshModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
+		case tea.KeyPgUp:
+			m.viewport.HalfViewUp()
+			return m, tea.Batch(cmds...)
+		case tea.KeyPgDown:
+			m.viewport.HalfViewDown()
+			return m, tea.Batch(cmds...)
 		case tea.KeyCtrlC:
 			m.channel.unregisterSession(m.chatID)
 			return m, tea.Quit

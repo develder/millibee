@@ -192,6 +192,7 @@ func (al *AgentLoop) Run(ctx context.Context) error {
 			var flushStream func()
 			if al.channelManager != nil {
 				onChunk, flushStream = al.channelManager.StreamCallbackFor(msg.Channel, msg.ChatID)
+				fmt.Printf("[DEBUG] streaming: channel=%s chatID=%s onChunk=%v\n", msg.Channel, msg.ChatID, onChunk != nil) // TODO: remove
 			}
 
 			response, err := al.processMessage(ctx, msg, onChunk)
